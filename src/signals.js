@@ -3,12 +3,16 @@ export function createSignalBus(initial = {}) {
   const values = new Map(Object.entries(initial));
   const queues = new Map();
   const listeners = new Map();
-  const unsubscribe = (name, listener) => {
+  const remove = (name, entry) => {
     const group = listeners.get(name);
     if (!group) return;
-    const index = group.indexOf(listener);
+    const index = group.indexOf(entry);
     if (index !== -1) group.splice(index, 1);
     if (!group.length) listeners.delete(name);
+  };
+  const unsubscribe = (name, listener) => {
+    const entry = listeners.get(name)?.find((item) => item.listener === listener);
+    if (entry) remove(name, entry);
   };
   return {
     get(name) { return values.get(name); },
@@ -25,12 +29,13 @@ export function createSignalBus(initial = {}) {
     subscribe(name, listener) {
       if (typeof listener !== 'function') throw new TypeError('Signal listener must be a function');
       if (!listeners.has(name)) listeners.set(name, []);
-      listeners.get(name).push(listener);
-      return () => unsubscribe(name, listener);
+      const entry = { listener };
+      listeners.get(name).push(entry);
+      return () => remove(name, entry);
     },
     unsubscribe,
     emit(name, value) {
-      for (const listener of [...(listeners.get(name) || [])]) listener(value);
+      for (const entry of [...(listeners.get(name) || [])]) entry.listener(value);
     },
   };
 }
