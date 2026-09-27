@@ -132,11 +132,14 @@ For a fixed card composition, `overrides.staticBodies` replaces the wandering
 bodies with `[x, y, radiusX, radiusY, weight]` entries in CSS pixels.
 
 The default 12 ms frame budget reduces spill passes when a rolling sample
-exceeds it, then restores detail after sustained spare time. Glyph spacing
-stays fixed across quality tiers.
+exceeds it, then restores detail after sustained spare time. Tier changes
+require at least three seconds of visible animation between applied tiers.
+Glyph spacing stays fixed across quality
+tiers.
 Inspect `field.stats` for frame cost and quality level. Override the budget
-with `quality: { frameBudget: 10 }` or disable adaptation with
-`adaptive: false` for a fixed render.
+with `quality: { frameBudget: 10, minDwellMs: 3000 }` or disable adaptation with
+`adaptive: false` for a fixed render. Custom `quality.levels` may change
+`spillSteps`; each level must keep `cellScale: 1`.
 
 Run `npm run snapshots:compare` for original-site references,
 `FIELD_CANDIDATE=1 npm run snapshots:compare` for the bundled library on both

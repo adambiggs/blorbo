@@ -17,8 +17,7 @@ export function createCore(c, { preset, bus }) {
   // a pixel pattern rather than from a font, so it is the same in every
   // browser and on every platform. A block is narrower than its cell, like
   // a monospace glyph in its advance, so a run of blocks keeps its grid.
-  const baseCW = preset.cell.width, baseCH = preset.cell.height;
-  let cw = baseCW, ch = baseCH;
+  const cw = preset.cell.width, ch = preset.cell.height;
   let spillSteps = 18;
   const BW = 9, BH = 13;
   // Each entry says which unit pixels of the block are inked, on a grid of
@@ -42,7 +41,7 @@ export function createCore(c, { preset, bus }) {
     [[2, 0, ch]],
   ];
   const ramp = () => glyph ? (typeof glyph.ramp === 'function' ? glyph.ramp({ width: cw, height: ch }) : glyph.ramp) : lines ? lineRamp() : BLOCK_RAMP;
-  let RAMP = ramp();
+  const RAMP = ramp();
   const STEPS = glyph?.steps ?? (lines ? [0.2, 0.29, 0.36, 0.5, 0.62] : [0.2, 0.36, 0.78]);
   if (!Array.isArray(RAMP) || !RAMP.length || STEPS.length !== RAMP.length - 1) throw new TypeError('Glyph ramp needs one fewer thresholds than glyphs');
   // One sprite per step in the current ink; painted with the cell's alpha.
@@ -702,11 +701,8 @@ export function createCore(c, { preset, bus }) {
   };
 
   const setQuality = (cellScale, passes) => {
-    if (cellScale === cw / baseCW && passes === spillSteps) return;
-    cw = baseCW * cellScale; ch = baseCH * cellScale;
+    if (cellScale !== 1) throw new RangeError('Quality tiers must preserve cell size');
     spillSteps = passes;
-    RAMP = ramp();
-    if (W && H) resize(W, H, dpr);
   };
 
   return { resize, draw, setContent, snapshot, restore, setQuality, destroy: () => customClick?.destroy?.(), over: OVER };

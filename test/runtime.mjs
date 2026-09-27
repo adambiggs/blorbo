@@ -165,36 +165,123 @@ try {
   result.qualityTransitions = await page.evaluate(async () => {
     const canvas = document.getElementById('field');
     const originalDrawImage = CanvasRenderingContext2D.prototype.drawImage;
+    const canvasWidth = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, 'width');
     const widthsByTier = Array.from({ length: 4 }, () => new Set());
+    let widthWrites = 0;
     let field;
+    Object.defineProperty(HTMLCanvasElement.prototype, 'width', {
+      configurable: true,
+      get() { return canvasWidth.get.call(this); },
+      set(value) {
+        if (this === canvas) widthWrites++;
+        canvasWidth.set.call(this, value);
+      },
+    });
     CanvasRenderingContext2D.prototype.drawImage = function (...args) {
       if (this.canvas === canvas && args.length === 5 && field) widthsByTier[field.stats.quality].add(args[3]);
       return originalDrawImage.apply(this, args);
     };
     let prior = 0, transitions = 0;
+    const transitionTimes = [];
     try {
       field = window.makeField(true, 0.1);
-      for (let i = 0; i < 70; i++) {
+      await new Promise((done) => requestAnimationFrame(done));
+      const initialWidthWrites = widthWrites;
+      for (let i = 0; i < 600; i++) {
         await new Promise((done) => requestAnimationFrame(done));
         if (field.stats.quality === prior) continue;
         prior = field.stats.quality;
         transitions++;
+        transitionTimes.push(performance.now());
         const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
         let visible = false;
         for (let p = 3; p < pixels.length; p += 4) if (pixels[p]) { visible = true; break; }
         if (!visible) throw new Error(`Quality transition ${prior} cleared the visible canvas`);
+        if (transitions === 3) {
+          await new Promise((done) => requestAnimationFrame(done));
+          await new Promise((done) => requestAnimationFrame(done));
+          break;
+        }
       }
       if (transitions !== 3) throw new Error(`Expected three quality transitions, got ${transitions}`);
+      for (let i = 1; i < transitionTimes.length; i++) {
+        if (transitionTimes[i] - transitionTimes[i - 1] < 2950) throw new Error(`Quality tiers changed too quickly: ${transitionTimes[i] - transitionTimes[i - 1]} ms`);
+      }
+      if (widthWrites !== initialWidthWrites) throw new Error(`Quality transitions reassigned canvas width ${widthWrites - initialWidthWrites} times`);
       const baseWidth = [...widthsByTier[0]][0];
       for (let tier = 0; tier < widthsByTier.length; tier++) {
         const widths = [...widthsByTier[tier]];
         if (widths.length !== 1 || widths[0] !== baseWidth) throw new Error(`Quality tier ${tier} changed glyph pitch: ${widths}`);
       }
-      return { transitions, spriteWidths: widthsByTier.map((widths) => [...widths]) };
+      return { transitions, minTransitionGapMs: Math.min(...transitionTimes.slice(1).map((time, i) => time - transitionTimes[i])), canvasWidthWritesAfterInitial: widthWrites - initialWidthWrites, spriteWidths: widthsByTier.map((widths) => [...widths]) };
     } finally {
       field?.destroy();
       CanvasRenderingContext2D.prototype.drawImage = originalDrawImage;
+      Object.defineProperty(HTMLCanvasElement.prototype, 'width', canvasWidth);
     }
+  });
+  result.qualityVisibilityDwell = await page.evaluate(async () => {
+    const { createField, presets } = await import('/src/index.js');
+    const field = createField(document.getElementById('field'), {
+      preset: presets.adambiggs,
+      overrides: { quality: { frameBudget: 0.1, minDwellMs: 1500 } },
+      persist: false,
+    });
+    try {
+      for (let frame = 0; frame < 80 && field.stats.quality === 0; frame++) await new Promise((done) => requestAnimationFrame(done));
+      if (field.stats.quality !== 1) throw new Error(`Expected quality tier 1 before hiding, got ${field.stats.quality}`);
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+      document.dispatchEvent(new Event('visibilitychange'));
+      await new Promise((done) => setTimeout(done, 1600));
+      delete document.visibilityState;
+      document.dispatchEvent(new Event('visibilitychange'));
+      for (let frame = 0; frame < 22; frame++) await new Promise((done) => requestAnimationFrame(done));
+      if (field.stats.quality !== 1) throw new Error(`Hidden time advanced quality to tier ${field.stats.quality} before visible dwell`);
+      return { tierAfterResume: field.stats.quality, visibleFrames: 22 };
+    } finally {
+      delete document.visibilityState;
+      field.destroy();
+    }
+  });
+  result.bodyContinuity = await page.evaluate(async () => {
+    const [{ createCore }, { createSignalBus }, { presets }] = await Promise.all([
+      import('/src/core.js'), import('/src/signals.js'), import('/src/presets.js'),
+    ]);
+    const make = () => {
+      const canvas = document.createElement('canvas');
+      const bus = createSignalBus();
+      const core = createCore(canvas, { preset: presets.gangline, bus });
+      core.resize(480, 320, 1);
+      return { canvas, bus, core };
+    };
+    const baseline = make(), tiered = make();
+    let checked = 0;
+    for (let frame = 0; frame < 55; frame++) {
+      const clock = 1000 + frame / 60;
+      const scroll = frame * 12;
+      for (const field of [baseline, tiered]) {
+        field.bus.set('clock', clock);
+        field.bus.set('scroll.px', scroll);
+      }
+      if (frame === 15) tiered.core.setQuality(1, 12);
+      if (frame === 30) tiered.core.setQuality(1, 8);
+      if (frame === 45) tiered.core.setQuality(1, 5);
+      baseline.core.draw(1 / 60);
+      tiered.core.draw(1 / 60);
+      if (frame >= 15) {
+        checked++;
+        if (baseline.canvas.toDataURL() !== tiered.canvas.toDataURL()) throw new Error(`Quality tier reset body motion at frame ${frame}`);
+      }
+    }
+    baseline.bus.set('scroll.px', 0);
+    baseline.core.setContent({ flowText: [{ l: 50, t: 50, r: 250, b: 90 }] });
+    for (let frame = 0; frame < 10; frame++) baseline.core.draw(1 / 60);
+    const beforeMask = baseline.core.snapshot().mask.mask;
+    if (![...atob(beforeMask)].some((value) => value.charCodeAt(0) > 0)) throw new Error('Content mask did not fill');
+    baseline.core.setQuality(1, 12);
+    if (baseline.core.snapshot().mask.mask !== beforeMask) throw new Error('Quality tier cleared the content mask');
+    baseline.core.destroy(); tiered.core.destroy();
+    return { comparedFrames: checked, identical: true, maskPreserved: true };
   });
   console.log(JSON.stringify(result));
 } finally {

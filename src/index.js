@@ -23,8 +23,9 @@ export function createField(canvas, { preset = presets.adambiggs, overrides = {}
     { cellScale: 1, spillSteps: 5 },
   ];
   const frameBudget = config.quality?.frameBudget ?? 12;
+  const minDwellMs = config.quality?.minDwellMs ?? 3000;
   const stats = { quality: 0, lastFrameMs: 0, averageFrameMs: 0, frames: 0 };
-  let sampleTotal = 0, sampleCount = 0, goodWindows = 0, pendingQuality = false;
+  let sampleTotal = 0, sampleCount = 0, goodWindows = 0, pendingQuality = false, activeQualityMs = Infinity;
   let pendingRestore = null;
   let clicks = [];
   const clickKeep = 2.82;
@@ -78,8 +79,10 @@ export function createField(canvas, { preset = presets.adambiggs, overrides = {}
     if (pendingQuality) {
       core.setQuality(levels[stats.quality].cellScale, levels[stats.quality].spillSteps);
       pendingQuality = false;
+      activeQualityMs = 0;
     }
     core.draw(bus.get('reducedMotion') ? 0 : dt);
+    activeQualityMs += dt * 1000;
     stats.lastFrameMs = window.performance.now() - started;
     stats.frames++;
     if (config.adaptive !== false && !bus.get('reducedMotion')) {
@@ -87,13 +90,14 @@ export function createField(canvas, { preset = presets.adambiggs, overrides = {}
       if (sampleCount >= 20) {
         stats.averageFrameMs = sampleTotal / sampleCount;
         sampleTotal = 0; sampleCount = 0;
-        if (stats.averageFrameMs > frameBudget && stats.quality < levels.length - 1) {
+        const canChange = activeQualityMs >= minDwellMs;
+        if (stats.averageFrameMs > frameBudget && stats.quality < levels.length - 1 && canChange) {
           stats.quality++;
           goodWindows = 0;
           pendingQuality = true;
         } else if (stats.averageFrameMs < frameBudget * 0.55 && stats.quality > 0) {
-          goodWindows++;
-          if (goodWindows >= 4) {
+          goodWindows = Math.min(4, goodWindows + 1);
+          if (goodWindows >= 4 && canChange) {
             stats.quality--;
             goodWindows = 0;
             pendingQuality = true;
@@ -127,6 +131,7 @@ export function createField(canvas, { preset = presets.adambiggs, overrides = {}
       if (pendingQuality) {
         core.setQuality(levels[stats.quality].cellScale, levels[stats.quality].spillSteps);
         pendingQuality = false;
+        activeQualityMs = 0;
       }
       const liveClock = bus.get('clock');
       bus.set('clock', t);
