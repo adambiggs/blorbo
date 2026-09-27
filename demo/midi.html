@@ -2,7 +2,7 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Living Field MIDI demo</title>
+<title>Blorbo MIDI demo</title>
 <style>
   :root { --glyph: 232,230,223; --glyph-gain: 1; --glyph-floor: 0.025; --ring: 255,221,0; color: #eceae3; background: #182a35; font: 16px/1.5 system-ui }
   body { min-height: 180vh; margin: 0; }
@@ -15,9 +15,9 @@
   label { display: block; margin: 1.5rem 0; }
   input[type=range] { display: block; width: min(28rem,100%); }
 </style>
-<div class="bgfx" aria-hidden="true"><canvas id="field"></canvas></div>
+<div class="bgfx" aria-hidden="true"><canvas id="blorbo"></canvas></div>
 <main>
-  <h1 data-blob="words">Living Field</h1>
+  <h1 data-blob="words">Blorbo</h1>
   <p>Move the knob to change the field’s drift and brightness. MIDI CC 1 controls the same sweep; note-on messages pulse the field.</p>
   <button id="midi" type="button">Enable MIDI</button>
   <p id="status" role="status">MIDI is off.</p>
@@ -25,8 +25,8 @@
   <button id="note" type="button">Play a note</button>
 </main>
 <script type="module">
-  import { createField, presets } from '../src/index.js';
-  const field = createField(document.getElementById('field'), {
+  import { createBlorbo, presets } from '../src/index.js';
+  const blorbo = createBlorbo(document.getElementById('blorbo'), {
     preset: presets.adambiggs,
     overrides: {
       midiPulse: true,
@@ -37,10 +37,10 @@
     },
   });
   document.getElementById('midi').addEventListener('click', async () => {
-    const enabled = await field.enableMIDI();
+    const enabled = await blorbo.enableMIDI();
     document.getElementById('status').textContent = enabled ? 'MIDI is ready. Move CC 1 or play notes.' : 'MIDI is unavailable in this browser or permission was declined.';
   });
-  document.getElementById('knob').addEventListener('input', (event) => field.setSignal('midi.cc.1', Number(event.target.value) / 127));
-  document.getElementById('note').addEventListener('click', () => field.pushSignal('midi.note', { note: 60, velocity: 1, on: true, channel: 0 }));
+  document.getElementById('knob').addEventListener('input', (event) => blorbo.setSignal('midi.cc.1', Number(event.target.value) / 127));
+  document.getElementById('note').addEventListener('click', () => blorbo.pushSignal('midi.note', { note: 60, velocity: 1, on: true, channel: 0 }));
 </script>
 </html>

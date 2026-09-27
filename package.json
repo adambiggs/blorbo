@@ -1,11 +1,11 @@
 {
-  "name": "living-field",
+  "name": "blorbo",
   "version": "0.1.0",
   "description": "Reactive canvas field backgrounds with pluggable inputs and presets",
   "type": "module",
-  "module": "./dist/living-field.js",
+  "module": "./dist/blorbo.js",
   "exports": {
-    ".": "./dist/living-field.js",
+    ".": "./dist/blorbo.js",
     "./inputs": "./src/inputs.js",
     "./presets": "./src/presets.js"
   },

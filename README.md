@@ -1,4 +1,4 @@
-# Living Field
+# Blorbo
 
 A canvas field of soft bodies and fixed glyph cells. It reacts to page content,
 scroll, pointer, click, orientation, theme, and optional MIDI input. The
@@ -9,11 +9,11 @@ backgrounds.
 ## Install and use
 
 ```sh
-npm install living-field
+npm install blorbo
 ```
 
 ```html
-<div class="bgfx" aria-hidden="true"><canvas id="field"></canvas></div>
+<div class="bgfx" aria-hidden="true"><canvas id="blorbo"></canvas></div>
 ```
 
 ```css
@@ -23,36 +23,36 @@ npm install living-field
 ```
 
 ```js
-import { createField, presets } from 'living-field';
+import { createBlorbo, presets } from 'blorbo';
 
-const field = createField(document.getElementById('field'), {
+const blorbo = createBlorbo(document.getElementById('blorbo'), {
   preset: presets.adambiggs, // or presets.gangline
   persist: 'session',
 });
 
 // On a client-side route change, after its new content has been mounted:
-field.remeasure();
+blorbo.remeasure();
 // When removing the canvas:
-field.destroy();
+blorbo.destroy();
 ```
 
-The package also includes `dist/living-field.iife.js` for pages without a
-bundler. It exposes `window.LivingField`. Load it before a script that calls
-`LivingField.createField(canvas, { preset: LivingField.presets.gangline })`.
+The package also includes `dist/blorbo.iife.js` for pages without a
+bundler. It exposes `window.Blorbo`. Load it before a script that calls
+`Blorbo.createBlorbo(canvas, { preset: Blorbo.presets.gangline })`.
 
 ## Updating the two sites
 
 The current integrations vendor built files because this package is not yet
 published. Gangline has no bundler: its page loads a copy of the IIFE, then
-`site/field.js` initializes it. GitHub Pages hashes both script URLs when it
+`site/blorbo.js` initializes it. GitHub Pages hashes both script URLs when it
 assembles the site. Adam Biggs imports a copy of the ESM build from
-`src/components/Field.astro`; Astro bundles it for the deployed page. Its
+`src/components/Blorbo.astro`; Astro bundles it for the deployed page. Its
 standalone share-card source loads a copy of the IIFE from `public/`.
 
 After a library change, run `npm run build` here, then copy
-`dist/living-field.iife.js` to `gangline/site/living-field.iife.js` and
-`adambiggs/public/living-field.iife.js`, and `dist/living-field.js` to
-`adambiggs/src/lib/living-field.js`. Check the copied files' hashes, run the
+`dist/blorbo.iife.js` to `gangline/site/blorbo.iife.js` and
+`adambiggs/public/blorbo.iife.js`, and `dist/blorbo.js` to
+`adambiggs/src/lib/blorbo.js`. Check the copied files' hashes, run the
 snapshot comparison against both sites, and commit the bundle copies with
 their consumers. The sites' deployment builds cannot read this sibling
 checkout, so a local `file:` dependency would not work there.
@@ -72,7 +72,7 @@ the same physics and mask/spill renderer. Pass `overrides` for another site's
 cell, glyph, click effect, content mode, quality settings, or signal mapping.
 
 ```js
-const field = createField(canvas, {
+const blorbo = createBlorbo(canvas, {
   preset: presets.adambiggs,
   overrides: {
     cell: { width: 18, height: 22 },
@@ -95,10 +95,10 @@ on every frame. A custom `clickEffect` is a factory returning an object with
 `onClick({ x, y, age, width, height, cellWidth, cellHeight })` and
 `draw({ ctx, width, height, time, dt, still, over, cellWidth, cellHeight })`.
 The draw callback paints above the field. The factory creates independent
-state per field instance; it may also return `destroy()` for cleanup.
+state per Blorbo instance; it may also return `destroy()` for cleanup.
 
-The signal bus is available as `field.signals`, `field.setSignal(name, value)`,
-and `field.pushSignal(name, event)`. Continuous values include `scroll` (0–1),
+The signal bus is available as `blorbo.signals`, `blorbo.setSignal(name, value)`,
+and `blorbo.pushSignal(name, event)`. Continuous values include `scroll` (0–1),
 `scroll.px`, `scroll.velocity` (viewport heights per second), `pointer.x/y`
 (0–1), `tilt.x/y` (gravity), `clock` (Unix seconds), and `midi.cc.N` (0–1).
 Event queues include `click` and `midi.note`. Default adapters attach for
@@ -110,7 +110,7 @@ MIDI access starts only after a user gesture:
 
 ```js
 button.addEventListener('click', async () => {
-  const enabled = await field.enableMIDI();
+  const enabled = await blorbo.enableMIDI();
   // The call returns false when MIDI is unavailable or permission is denied.
 });
 ```
@@ -123,7 +123,7 @@ permission can be requested from a host button with
 
 ## Still frames and performance
 
-`field.still(t)` draws a frame at Unix time `t` and returns the canvas. It
+`blorbo.still(t)` draws a frame at Unix time `t` and returns the canvas. It
 works for share cards and reduced-motion views. `destroy()` removes all
 listeners and cancels the animation loop. Hidden pages pause, reduced-motion
 changes redraw once, and theme changes rebuild glyph sprites without reading
@@ -136,15 +136,15 @@ exceeds it, then restores detail after sustained spare time. Tier changes
 require at least three seconds of visible animation between applied tiers.
 Glyph spacing stays fixed across quality
 tiers.
-Inspect `field.stats` for frame cost and quality level. Override the budget
+Inspect `blorbo.stats` for frame cost and quality level. Override the budget
 with `quality: { frameBudget: 10, minDwellMs: 3000 }` or disable adaptation with
 `adaptive: false` for a fixed render. Custom `quality.levels` may change
 `spillSteps`; each level must keep `cellScale: 1`.
 
-Run `npm run snapshots:compare` for original-site references,
-`FIELD_CANDIDATE=1 npm run snapshots:compare` for the bundled library on both
-site pages, and `npm run perf` for headless Chromium frame costs. See
-`test/README.md` for the visual tolerance and fixture limits. Serve this
+Run `npm run snapshots:compare` to compare both integrated sites against their
+reference frames, and `npm run perf` for headless Chromium frame costs. Set
+`BLORBO_GANGLINE_SITE` and `BLORBO_ADAMBIGGS_PROJECT` to compare site worktrees.
+See `test/README.md` for the visual tolerance and fixture limits. Serve this
 directory over HTTP to open `demo/midi.html` or `demo/phone-perf.html`.
 
 ## License

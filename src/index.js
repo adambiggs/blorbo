@@ -7,7 +7,7 @@ import { clock, viewport, scroll, pointer, click, orientation, midi, content, vi
 export { createSignalBus, presets };
 export { clock, viewport, scroll, pointer, click, orientation, midi, content, visibility, reducedMotion, theme, requestOrientationPermission } from './inputs.js';
 
-export function createField(canvas, { preset = presets.adambiggs, overrides = {}, inputs, persist = 'session' } = {}) {
+export function createBlorbo(canvas, { preset = presets.adambiggs, overrides = {}, inputs, persist = 'session' } = {}) {
   const config = resolvePreset(preset, overrides);
   const document = canvas.ownerDocument;
   const window = document.defaultView;
@@ -36,10 +36,10 @@ export function createField(canvas, { preset = presets.adambiggs, overrides = {}
 
   if (storage) {
     try {
-      const cursor = JSON.parse(storage.getItem('field'));
-      const mask = JSON.parse(storage.getItem('field:mask'));
+      const cursor = JSON.parse(storage.getItem('blorbo'));
+      const mask = JSON.parse(storage.getItem('blorbo:mask'));
       if (cursor || (mask && Date.now() - mask.at < 10000)) pendingRestore = { cursor, mask };
-      clicks = (JSON.parse(storage.getItem('field:clicks')) || []).filter((item) => Date.now() - item.at < clickKeep * 1000);
+      clicks = (JSON.parse(storage.getItem('blorbo:clicks')) || []).filter((item) => Date.now() - item.at < clickKeep * 1000);
     } catch { /* Storage can be disabled by the browser. */ }
   }
 
@@ -48,14 +48,14 @@ export function createField(canvas, { preset = presets.adambiggs, overrides = {}
     const item = { x: value.x * window.innerWidth, y: value.y * window.innerHeight, at: value.at };
     clicks = clicks.filter((entry) => Date.now() - entry.at < clickKeep * 1000).slice(-3);
     clicks.push(item);
-    try { storage.setItem('field:clicks', JSON.stringify(clicks)); } catch { /* Storage can be disabled. */ }
+    try { storage.setItem('blorbo:clicks', JSON.stringify(clicks)); } catch { /* Storage can be disabled. */ }
   };
   const save = () => {
     if (!storage) return;
     const state = core.snapshot();
     try {
-      storage.setItem('field', JSON.stringify(state.cursor));
-      storage.setItem('field:mask', JSON.stringify({ ...state.mask, at: Date.now() }));
+      storage.setItem('blorbo', JSON.stringify(state.cursor));
+      storage.setItem('blorbo:mask', JSON.stringify({ ...state.mask, at: Date.now() }));
     } catch { /* Storage can be disabled. */ }
   };
   const ensureSize = () => {

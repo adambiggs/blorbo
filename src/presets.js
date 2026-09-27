@@ -20,6 +20,6 @@ export const presets = Object.freeze({
 
 export function resolvePreset(preset = presets.adambiggs, overrides = {}) {
   const base = typeof preset === 'string' ? presets[preset] : preset;
-  if (!base) throw new TypeError(`Unknown field preset: ${preset}`);
+  if (!base) throw new TypeError(`Unknown Blorbo preset: ${preset}`);
   return { ...base, ...overrides, cell: { ...base.cell, ...overrides.cell } };
 }

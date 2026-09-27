@@ -31,22 +31,22 @@ try {
     };
   });
   await page.goto(`http://127.0.0.1:${server.address().port}/test/perf.html`, { waitUntil: 'load' });
-  await page.waitForFunction(() => !!window.makeField);
+  await page.waitForFunction(() => !!window.makeBlorbo);
   const result = await page.evaluate(async () => {
     const next = () => new Promise((done) => requestAnimationFrame(done));
     const frames = async (count) => { for (let i = 0; i < count; i++) await next(); };
-    const field = window.makeField(false);
+    const blorbo = window.makeBlorbo(false);
     await frames(5);
-    if (!field.stats.frames) throw new Error('Field did not animate');
-    const canvas = document.getElementById('field');
-    if (field.still(1000) !== canvas) throw new Error('Still frame did not return the canvas');
-    const enabled = await field.enableMIDI();
+    if (!blorbo.stats.frames) throw new Error('Blorbo did not animate');
+    const canvas = document.getElementById('blorbo');
+    if (blorbo.still(1000) !== canvas) throw new Error('Still frame did not return the canvas');
+    const enabled = await blorbo.enableMIDI();
     if (!enabled) throw new Error('Fake MIDI access was not enabled');
     window.sendTestMIDI([0xb0, 1, 64]);
     window.sendTestMIDI([0xe0, 0, 64]);
     window.sendTestMIDI([0xf8]);
-    const cc = field.signals.get('midi.cc.1');
-    if (Math.abs(cc - 64 / 127) > 1e-6 || field.signals.get('midi.pitchbend') !== 0 || field.signals.get('midi.clock') !== 1)
+    const cc = blorbo.signals.get('midi.cc.1');
+    if (Math.abs(cc - 64 / 127) > 1e-6 || blorbo.signals.get('midi.pitchbend') !== 0 || blorbo.signals.get('midi.clock') !== 1)
       throw new Error('MIDI signals are wrong');
     const originalStyle = getComputedStyle;
     let styleReads = 0;
@@ -54,53 +54,53 @@ try {
     await frames(5);
     window.getComputedStyle = originalStyle;
     if (styleReads) throw new Error(`Computed style was read ${styleReads} times during steady frames`);
-    field.destroy();
-    const after = field.stats.frames;
+    blorbo.destroy();
+    const after = blorbo.stats.frames;
     await frames(5);
-    if (field.stats.frames !== after) throw new Error('Field kept animating after destroy');
+    if (blorbo.stats.frames !== after) throw new Error('Blorbo kept animating after destroy');
     window.sendTestMIDI([0xb0, 1, 10]);
-    if (field.signals.get('midi.cc.1') !== cc) throw new Error('MIDI listener survived destroy');
-    return { animatedFrames: after, cc, styleReads, destroyedFrames: field.stats.frames };
+    if (blorbo.signals.get('midi.cc.1') !== cc) throw new Error('MIDI listener survived destroy');
+    return { animatedFrames: after, cc, styleReads, destroyedFrames: blorbo.stats.frames };
   });
-  await page.evaluate(() => { window.runtimeField = window.makeField(false); });
+  await page.evaluate(() => { window.runtimeBlorbo = window.makeBlorbo(false); });
   await page.evaluate(async () => { for (let i = 0; i < 5; i++) await new Promise((done) => requestAnimationFrame(done)); });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.evaluate(async () => { for (let i = 0; i < 3; i++) await new Promise((done) => requestAnimationFrame(done)); });
-  const pausedAt = await page.evaluate(() => window.runtimeField.stats.frames);
+  const pausedAt = await page.evaluate(() => window.runtimeBlorbo.stats.frames);
   await page.evaluate(async () => { for (let i = 0; i < 5; i++) await new Promise((done) => requestAnimationFrame(done)); });
-  if (await page.evaluate(() => window.runtimeField.stats.frames) !== pausedAt) throw new Error('Reduced motion kept animating');
+  if (await page.evaluate(() => window.runtimeBlorbo.stats.frames) !== pausedAt) throw new Error('Reduced motion kept animating');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.evaluate(async () => { for (let i = 0; i < 5; i++) await new Promise((done) => requestAnimationFrame(done)); });
-  if (await page.evaluate(() => window.runtimeField.stats.frames) <= pausedAt) throw new Error('Field did not resume after reduced motion changed');
-  await page.evaluate(() => window.runtimeField.destroy());
+  if (await page.evaluate(() => window.runtimeBlorbo.stats.frames) <= pausedAt) throw new Error('Blorbo did not resume after reduced motion changed');
+  await page.evaluate(() => window.runtimeBlorbo.destroy());
   result.reducedMotionPausedAt = pausedAt;
   await page.evaluate(() => {
-    window.runtimeField = window.makeField(false);
+    window.runtimeBlorbo = window.makeBlorbo(false);
     Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  const hiddenAt = await page.evaluate(() => window.runtimeField.stats.frames);
+  const hiddenAt = await page.evaluate(() => window.runtimeBlorbo.stats.frames);
   await page.evaluate(async () => { for (let i = 0; i < 5; i++) await new Promise((done) => requestAnimationFrame(done)); });
-  if (await page.evaluate(() => window.runtimeField.stats.frames) !== hiddenAt) throw new Error('Hidden field kept animating');
+  if (await page.evaluate(() => window.runtimeBlorbo.stats.frames) !== hiddenAt) throw new Error('Hidden Blorbo kept animating');
   await page.evaluate(() => {
     delete document.visibilityState;
     document.dispatchEvent(new Event('visibilitychange'));
   });
   await page.evaluate(async () => { for (let i = 0; i < 5; i++) await new Promise((done) => requestAnimationFrame(done)); });
-  if (await page.evaluate(() => window.runtimeField.stats.frames) <= hiddenAt) throw new Error('Visible field did not resume');
-  await page.evaluate(() => window.runtimeField.destroy());
+  if (await page.evaluate(() => window.runtimeBlorbo.stats.frames) <= hiddenAt) throw new Error('Visible Blorbo did not resume');
+  await page.evaluate(() => window.runtimeBlorbo.destroy());
   result.hiddenPausedAt = hiddenAt;
   result.focused = await page.evaluate(async () => {
-    const { createField, presets, midi, clock } = await import('../src/index.js');
-    const canvas = document.getElementById('field');
-    const stillField = createField(canvas, { preset: presets.adambiggs, inputs: [], persist: false });
-    stillField.pushSignal('click', { x: 0.5, y: 0.5, age: 0 });
-    const first = stillField.still(1000).toDataURL();
-    const second = stillField.still(1000).toDataURL();
-    stillField.destroy();
+    const { createBlorbo, presets, midi, clock } = await import('../src/index.js');
+    const canvas = document.getElementById('blorbo');
+    const stillBlorbo = createBlorbo(canvas, { preset: presets.adambiggs, inputs: [], persist: false });
+    stillBlorbo.pushSignal('click', { x: 0.5, y: 0.5, age: 0 });
+    const first = stillBlorbo.still(1000).toDataURL();
+    const second = stillBlorbo.still(1000).toDataURL();
+    stillBlorbo.destroy();
     if (first !== second) throw new Error('Still frame changed at the same time after a click');
 
-    const clockField = createField(canvas, {
+    const clockBlorbo = createBlorbo(canvas, {
       preset: presets.adambiggs, inputs: [clock()], persist: false,
       overrides: { mapSignals: (bus) => ({ gain: 1 + (Math.floor(bus.get('clock')) % 2) }) },
     });
@@ -108,20 +108,20 @@ try {
     let mappedFirst, mappedSecond;
     try {
       Date.now = () => 1001000;
-      mappedFirst = clockField.still(1000).toDataURL();
+      mappedFirst = clockBlorbo.still(1000).toDataURL();
       Date.now = () => 1002000;
-      mappedSecond = clockField.still(1000).toDataURL();
-    } finally { Date.now = realNow; clockField.destroy(); }
+      mappedSecond = clockBlorbo.still(1000).toDataURL();
+    } finally { Date.now = realNow; clockBlorbo.destroy(); }
     if (mappedFirst !== mappedSecond) throw new Error('Still frame mapping used wall time instead of its fixed time');
 
     const storageDescriptor = Object.getOwnPropertyDescriptor(window, 'sessionStorage');
     Object.defineProperty(window, 'sessionStorage', { configurable: true, get() { throw new DOMException('blocked', 'SecurityError'); } });
     try {
-      createField(canvas, { inputs: [], persist: 'session' }).destroy();
+      createBlorbo(canvas, { inputs: [], persist: 'session' }).destroy();
     } finally { Object.defineProperty(window, 'sessionStorage', storageDescriptor); }
 
     let clicks = 0, glyphDraws = 0;
-    const custom = createField(canvas, {
+    const custom = createBlorbo(canvas, {
       preset: presets.adambiggs,
       overrides: {
         glyph: {
@@ -150,11 +150,11 @@ try {
     const midiDescriptor = Object.getOwnPropertyDescriptor(navigator, 'requestMIDIAccess');
     Object.defineProperty(navigator, 'requestMIDIAccess', { configurable: true, value: () => new Promise((done) => { grant = done; }) });
     try {
-      const delayed = createField(canvas, { inputs: [midi()], persist: false });
+      const delayed = createBlorbo(canvas, { inputs: [midi()], persist: false });
       const enabling = delayed.enableMIDI();
       delayed.destroy();
       grant(access);
-      if (await enabling) throw new Error('MIDI permission enabled a destroyed field');
+      if (await enabling) throw new Error('MIDI permission enabled a destroyed Blorbo instance');
       const event = new Event('midimessage');
       Object.defineProperty(event, 'data', { value: [0xb0, 1, 127] });
       input.dispatchEvent(event);
@@ -163,12 +163,12 @@ try {
     return { stillRepeatable: true, clockMappingRepeatable: true, blockedStorage: true, customGlyphDraws: glyphDraws, customClickEvents: clicks, lateMIDI: true };
   });
   result.qualityTransitions = await page.evaluate(async () => {
-    const canvas = document.getElementById('field');
+    const canvas = document.getElementById('blorbo');
     const originalDrawImage = CanvasRenderingContext2D.prototype.drawImage;
     const canvasWidth = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, 'width');
     const widthsByTier = Array.from({ length: 4 }, () => new Set());
     let widthWrites = 0;
-    let field;
+    let blorbo;
     Object.defineProperty(HTMLCanvasElement.prototype, 'width', {
       configurable: true,
       get() { return canvasWidth.get.call(this); },
@@ -178,19 +178,19 @@ try {
       },
     });
     CanvasRenderingContext2D.prototype.drawImage = function (...args) {
-      if (this.canvas === canvas && args.length === 5 && field) widthsByTier[field.stats.quality].add(args[3]);
+      if (this.canvas === canvas && args.length === 5 && blorbo) widthsByTier[blorbo.stats.quality].add(args[3]);
       return originalDrawImage.apply(this, args);
     };
     let prior = 0, transitions = 0;
     const transitionTimes = [];
     try {
-      field = window.makeField(true, 0.1);
+      blorbo = window.makeBlorbo(true, 0.1);
       await new Promise((done) => requestAnimationFrame(done));
       const initialWidthWrites = widthWrites;
       for (let i = 0; i < 600; i++) {
         await new Promise((done) => requestAnimationFrame(done));
-        if (field.stats.quality === prior) continue;
-        prior = field.stats.quality;
+        if (blorbo.stats.quality === prior) continue;
+        prior = blorbo.stats.quality;
         transitions++;
         transitionTimes.push(performance.now());
         const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
@@ -215,32 +215,32 @@ try {
       }
       return { transitions, minTransitionGapMs: Math.min(...transitionTimes.slice(1).map((time, i) => time - transitionTimes[i])), canvasWidthWritesAfterInitial: widthWrites - initialWidthWrites, spriteWidths: widthsByTier.map((widths) => [...widths]) };
     } finally {
-      field?.destroy();
+      blorbo?.destroy();
       CanvasRenderingContext2D.prototype.drawImage = originalDrawImage;
       Object.defineProperty(HTMLCanvasElement.prototype, 'width', canvasWidth);
     }
   });
   result.qualityVisibilityDwell = await page.evaluate(async () => {
-    const { createField, presets } = await import('/src/index.js');
-    const field = createField(document.getElementById('field'), {
+    const { createBlorbo, presets } = await import('/src/index.js');
+    const blorbo = createBlorbo(document.getElementById('blorbo'), {
       preset: presets.adambiggs,
       overrides: { quality: { frameBudget: 0.1, minDwellMs: 1500 } },
       persist: false,
     });
     try {
-      for (let frame = 0; frame < 80 && field.stats.quality === 0; frame++) await new Promise((done) => requestAnimationFrame(done));
-      if (field.stats.quality !== 1) throw new Error(`Expected quality tier 1 before hiding, got ${field.stats.quality}`);
+      for (let frame = 0; frame < 80 && blorbo.stats.quality === 0; frame++) await new Promise((done) => requestAnimationFrame(done));
+      if (blorbo.stats.quality !== 1) throw new Error(`Expected quality tier 1 before hiding, got ${blorbo.stats.quality}`);
       Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
       document.dispatchEvent(new Event('visibilitychange'));
       await new Promise((done) => setTimeout(done, 1600));
       delete document.visibilityState;
       document.dispatchEvent(new Event('visibilitychange'));
       for (let frame = 0; frame < 22; frame++) await new Promise((done) => requestAnimationFrame(done));
-      if (field.stats.quality !== 1) throw new Error(`Hidden time advanced quality to tier ${field.stats.quality} before visible dwell`);
-      return { tierAfterResume: field.stats.quality, visibleFrames: 22 };
+      if (blorbo.stats.quality !== 1) throw new Error(`Hidden time advanced quality to tier ${blorbo.stats.quality} before visible dwell`);
+      return { tierAfterResume: blorbo.stats.quality, visibleFrames: 22 };
     } finally {
       delete document.visibilityState;
-      field.destroy();
+      blorbo.destroy();
     }
   });
   result.bodyContinuity = await page.evaluate(async () => {
@@ -259,9 +259,9 @@ try {
     for (let frame = 0; frame < 55; frame++) {
       const clock = 1000 + frame / 60;
       const scroll = frame * 12;
-      for (const field of [baseline, tiered]) {
-        field.bus.set('clock', clock);
-        field.bus.set('scroll.px', scroll);
+      for (const blorbo of [baseline, tiered]) {
+        blorbo.bus.set('clock', clock);
+        blorbo.bus.set('scroll.px', scroll);
       }
       if (frame === 15) tiered.core.setQuality(1, 12);
       if (frame === 30) tiered.core.setQuality(1, 8);

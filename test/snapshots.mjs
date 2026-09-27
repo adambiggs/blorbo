@@ -7,27 +7,25 @@ import { promisify } from 'node:util';
 import { chromium } from 'playwright-core';
 
 const mode = process.argv[2];
-const candidate = process.env.FIELD_CANDIDATE === '1';
 if (!['reference', 'compare'].includes(mode)) {
   console.error('Usage: npm run snapshots:reference|snapshots:compare');
   process.exit(2);
 }
-if (candidate && mode === 'reference') throw new Error('Candidate mode cannot replace reference PNGs');
 
 const here = resolve(import.meta.dirname, '..');
-const adambiggsProject = resolve(process.env.FIELD_ADAMBIGGS_PROJECT || resolve(here, '../adambiggs'));
+const adambiggsProject = resolve(process.env.BLORBO_ADAMBIGGS_PROJECT || resolve(here, '../adambiggs'));
 const sites = {
-  gangline: resolve(process.env.FIELD_GANGLINE_SITE || resolve(here, '../gangline/site')),
+  gangline: resolve(process.env.BLORBO_GANGLINE_SITE || resolve(here, '../gangline/site')),
   adambiggs: join(adambiggsProject, 'dist'),
 };
 const referenceDir = join(here, 'test/reference');
-const evidenceDir = join(here, '.evidence/snapshots', candidate ? 'candidate' : 'baseline');
+const evidenceDir = join(here, '.evidence/snapshots/baseline');
 const viewport = { width: 960, height: 640 };
 const epoch = Date.UTC(2026, 8, 26, 12);
 const cases = ['rest', 'scroll-pointer', 'click'];
 const sources = {
-  gangline: resolve(process.env.FIELD_GANGLINE_SOURCE || join(sites.gangline, 'field.js')),
-  adambiggs: resolve(process.env.FIELD_ADAMBIGGS_SOURCE || join(adambiggsProject, 'src/components/Field.astro')),
+  gangline: resolve(process.env.BLORBO_GANGLINE_SOURCE || join(sites.gangline, 'blorbo.js')),
+  adambiggs: resolve(process.env.BLORBO_ADAMBIGGS_SOURCE || join(adambiggsProject, 'src/components/Blorbo.astro')),
 };
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
 
@@ -36,38 +34,9 @@ function serve(root, site) {
     try {
       const url = new URL(req.url, 'http://localhost');
       const relative = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'index.html';
-      if (candidate && relative === 'field-candidate.js') {
-        res.writeHead(200, { 'content-type': 'text/javascript' });
-        res.end(site === 'gangline'
-          ? `window.__livingField = LivingField.createField(document.getElementById('field'), { preset: LivingField.presets.gangline, overrides: { adaptive: false } });\n`
-          : `import { createField, presets } from '/field-lib-dist/living-field.js';\nwindow.__livingField = createField(document.getElementById('field'), { preset: presets.adambiggs, overrides: { adaptive: false } });\n`);
-        return;
-      }
-      if (candidate && relative.startsWith('field-lib-dist/')) {
-        const path = resolve(here, 'dist', relative.slice('field-lib-dist/'.length));
-        if (!path.startsWith(join(here, 'dist') + sep)) throw new Error('outside library');
-        res.writeHead(200, { 'content-type': 'text/javascript' });
-        res.end(await readFile(path));
-        return;
-      }
       const path = resolve(root, relative);
       if (path !== root && !path.startsWith(root + sep)) throw new Error('outside site');
-      let body = await readFile(path);
-      if (candidate && relative === 'index.html') {
-        let html = body.toString();
-        if (site === 'gangline') {
-          const old = '<script src="field.js" defer></script>';
-          if (!html.includes(old)) throw new Error('Gangline field script tag changed');
-          html = html.replace(old, '<script src="/field-lib-dist/living-field.iife.js" defer></script><script src="/field-candidate.js" defer></script>');
-        } else {
-          const canvas = html.indexOf('<canvas id="field"');
-          const start = html.indexOf('<script>', canvas);
-          const end = html.indexOf('</script>', start);
-          if (canvas < 0 || start < 0 || end < 0) throw new Error('Adam Biggs inline field script changed');
-          html = html.slice(0, start) + '<script type="module" src="/field-candidate.js"></script>' + html.slice(end + 9);
-        }
-        body = Buffer.from(html);
-      }
+      const body = await readFile(path);
       res.writeHead(200, { 'content-type': mime[extname(path)] || 'application/octet-stream' });
       res.end(body);
     } catch {
@@ -80,7 +49,7 @@ function serve(root, site) {
 async function capture(browser, site, baseUrl, theme, scene) {
   const context = await browser.newContext({ viewport, deviceScaleFactor: 1, colorScheme: theme, reducedMotion: 'no-preference' });
   const page = await context.newPage();
-  // Keep the unrelated demo controls fixed during field captures.
+  // Keep the unrelated demo controls fixed during Blorbo captures.
   if (site === 'gangline') await page.route('**/demo.js', (route) => route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -89,7 +58,7 @@ async function capture(browser, site, baseUrl, theme, scene) {
     let callbacks = [], frame = 0;
     window.requestAnimationFrame = (callback) => { callbacks.push(callback); return callbacks.length; };
     window.cancelAnimationFrame = () => {};
-    window.__stepFieldFrames = (count) => {
+    window.__stepBlorboFrames = (count) => {
       for (let i = 0; i < count; i++) {
         frame++;
         const current = callbacks;
@@ -99,13 +68,12 @@ async function capture(browser, site, baseUrl, theme, scene) {
     };
   }, epoch);
   await page.goto(baseUrl, { waitUntil: 'load' });
-  if (candidate && !(await page.evaluate(() => !!window.__livingField?.signals))) throw new Error(`${site} candidate field did not start`);
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate(() => Promise.all([...document.images].filter((image) => image.loading !== 'lazy').map((image) => image.decode().catch(() => {}))));
   await page.waitForFunction(() => [...document.querySelectorAll('video')].every((video) => video.readyState >= 1));
   await page.evaluate(() => document.querySelectorAll('video').forEach((video) => video.pause()));
   await page.evaluate(() => dispatchEvent(new Event('resize')));
-  await page.evaluate(() => window.__stepFieldFrames(12));
+  await page.evaluate(() => window.__stepBlorboFrames(12));
   if (scene === 'scroll-pointer') {
     await page.evaluate(() => {
       scrollTo({ top: 500, behavior: 'instant' });
@@ -119,14 +87,14 @@ async function capture(browser, site, baseUrl, theme, scene) {
       dispatchEvent(new MouseEvent('click', { clientX: 480, clientY: 320 }));
     });
   }
-  await page.evaluate(() => window.__stepFieldFrames(24));
+  await page.evaluate(() => window.__stepBlorboFrames(24));
   if (errors.length) throw new Error(`Page error: ${errors.join('; ')}`);
   const data = await page.evaluate(({ width, height }) => {
-    const field = document.getElementById('field');
-    if (!field || field.width !== width) throw new Error('Field canvas missing or wrong width');
+    const blorbo = document.getElementById('blorbo');
+    if (!blorbo || blorbo.width !== width) throw new Error('Blorbo canvas missing or wrong width');
     const output = document.createElement('canvas');
     output.width = width; output.height = height;
-    output.getContext('2d').drawImage(field, 0, 240, width, height, 0, 0, width, height);
+    output.getContext('2d').drawImage(blorbo, 0, 240, width, height, 0, 0, width, height);
     return output.toDataURL('image/png').split(',')[1];
   }, viewport);
   await context.close();
@@ -173,17 +141,6 @@ async function pixelDiff(page, actual, expected) {
 }
 
 await mkdir(evidenceDir, { recursive: true });
-if (candidate) {
-  const buildLog = join(evidenceDir, 'library-build.log');
-  try {
-    const { stdout, stderr } = await promisify(execFile)('npm', ['run', 'build'], { cwd: here, maxBuffer: 10 * 1024 * 1024 });
-    await writeFile(buildLog, stdout + stderr);
-  } catch (error) {
-    await writeFile(buildLog, (error.stdout || '') + (error.stderr || ''));
-    throw new Error(`Library build failed; see ${buildLog}`, { cause: error });
-  }
-  console.log(`Library build saved to ${buildLog}`);
-}
 const buildLog = join(evidenceDir, 'astro-build.log');
 try {
   const { stdout, stderr } = await promisify(execFile)('npm', ['run', 'build'], { cwd: adambiggsProject, maxBuffer: 10 * 1024 * 1024 });
@@ -212,7 +169,7 @@ try {
     throw new Error('Reference viewport or clock differs from current harness');
   }
   await mkdir(mode === 'reference' ? referenceDir : evidenceDir, { recursive: true });
-  const manifest = { chrome: browser.version(), viewport, epoch, ...(mode === 'compare' ? { roots: sites, candidate } : {}), sources: {}, cases: {} };
+  const manifest = { chrome: browser.version(), viewport, epoch, ...(mode === 'compare' ? { roots: sites } : {}), sources: {}, cases: {} };
   const captures = new Map();
   let failures = 0;
   for (const [site, root] of Object.entries(sites)) {

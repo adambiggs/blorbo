@@ -10,6 +10,6 @@ const shared = {
 };
 
 await Promise.all([
-  build({ ...shared, format: 'esm', outfile: 'dist/living-field.js' }),
-  build({ ...shared, format: 'iife', globalName: 'LivingField', minify: true, outfile: 'dist/living-field.iife.js' }),
+  build({ ...shared, format: 'esm', outfile: 'dist/blorbo.js' }),
+  build({ ...shared, format: 'iife', globalName: 'Blorbo', minify: true, outfile: 'dist/blorbo.iife.js' }),
 ]);

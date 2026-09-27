@@ -30,24 +30,24 @@ try {
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto(`http://127.0.0.1:${server.address().port}/test/perf.html`, { waitUntil: 'load' });
-    await page.waitForFunction(() => !!window.makeField);
+    await page.waitForFunction(() => !!window.makeBlorbo);
     const result = await page.evaluate(async () => {
       const next = () => new Promise((done) => requestAnimationFrame(done));
       const percentile = (values, p) => values.toSorted((a, b) => a - b)[Math.floor((values.length - 1) * p)];
       const sample = async (adaptive, frameBudget) => {
-        const field = window.makeField(adaptive, frameBudget);
+        const blorbo = window.makeBlorbo(adaptive, frameBudget);
         const values = [];
         for (let i = 0; i < 120; i++) {
           await next();
-          if (i >= 20) values.push(field.stats.lastFrameMs);
+          if (i >= 20) values.push(blorbo.stats.lastFrameMs);
         }
         const result = {
           meanMs: values.reduce((a, b) => a + b, 0) / values.length,
           p50Ms: percentile(values, 0.5), p95Ms: percentile(values, 0.95),
-          maxMs: Math.max(...values), quality: field.stats.quality,
-          frames: field.stats.frames,
+          maxMs: Math.max(...values), quality: blorbo.stats.quality,
+          frames: blorbo.stats.frames,
         };
-        field.destroy();
+        blorbo.destroy();
         return result;
       };
       return { fixed: await sample(false), adaptive: await sample(true), forcedBudget: await sample(true, 0.2) };

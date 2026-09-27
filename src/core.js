@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 export function createCore(c, { preset, bus }) {
-  if (!c?.getContext) throw new TypeError('createField requires a canvas');
+  if (!c?.getContext) throw new TypeError('createBlorbo requires a canvas');
   const ctx = c.getContext('2d');
   if (!ctx) throw new TypeError('Canvas 2D context is unavailable');
   let rm = false;

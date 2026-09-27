@@ -2,7 +2,7 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Living Field phone check</title>
+<title>Blorbo phone check</title>
 <style>
   :root { --glyph: 232,230,223; --glyph-gain: 1; --glyph-floor: 0.025; --ring: 255,221,0; color: #eceae3; background: #182a35; font: 16px/1.5 system-ui }
   body { min-height: 180vh; margin: 0 }
@@ -13,7 +13,7 @@
   button { font: inherit; padding: .6rem 1rem }
   pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 1rem; background: #142a35cc }
 </style>
-<div class="bgfx" aria-hidden="true"><canvas id="field"></canvas></div>
+<div class="bgfx" aria-hidden="true"><canvas id="blorbo"></canvas></div>
 <main>
   <h1 data-blob="words">Phone check</h1>
   <p>Hold the phone still and run this check. It samples the field for about three seconds.</p>
@@ -21,17 +21,17 @@
   <pre id="result" aria-live="polite">Ready.</pre>
 </main>
 <script type="module">
-  import { createField, presets } from '../src/index.js';
+  import { createBlorbo, presets } from '../src/index.js';
   const result = document.getElementById('result');
   document.getElementById('run').addEventListener('click', async () => {
     result.textContent = 'Measuring…';
-    const field = createField(document.getElementById('field'), { preset: presets.adambiggs, persist: false });
+    const blorbo = createBlorbo(document.getElementById('blorbo'), { preset: presets.adambiggs, persist: false });
     const samples = [], intervals = [];
     let previous = 0;
     for (let i = 0; i < 180; i++) {
       const now = await new Promise((done) => requestAnimationFrame(done));
       if (i >= 30) {
-        samples.push(field.stats.lastFrameMs);
+        samples.push(blorbo.stats.lastFrameMs);
         if (previous) intervals.push(now - previous);
       }
       previous = now;
@@ -44,10 +44,10 @@
       frameCostMeanMs: +(samples.reduce((a, b) => a + b, 0) / samples.length).toFixed(2),
       frameCostP95Ms: +p95(samples).toFixed(2),
       frameIntervalP95Ms: +p95(intervals).toFixed(2),
-      quality: field.stats.quality,
+      quality: blorbo.stats.quality,
       userAgent: navigator.userAgent,
     };
-    field.destroy();
+    blorbo.destroy();
     result.textContent = JSON.stringify(report, null, 2);
   });
 </script>

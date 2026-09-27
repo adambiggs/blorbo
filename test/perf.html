@@ -10,15 +10,15 @@
   main { position: relative; max-width: 44rem; padding: 4rem 2rem }
   h1 { font-size: 4rem }
 </style>
-<div class="bgfx" aria-hidden="true"><canvas id="field"></canvas></div>
+<div class="bgfx" aria-hidden="true"><canvas id="blorbo"></canvas></div>
 <main>
-  <h1 data-blob="words">Living Field</h1>
+  <h1 data-blob="words">Blorbo</h1>
   <p>A representative page with a pinned headline and several text boxes. The field follows the pointer, page scroll, and click while text repels the free bodies.</p>
   <p>The canvas is sampled at phone, tablet, and desktop sizes. Each run includes content measurement, field simulation, spill, sprite blits, and a frame budget response.</p>
   <p>Longer paragraphs keep enough content in view to exercise masking and spill. This fixture is deliberately plain so the measured cost belongs to the field.</p>
 </main>
 <script type="module">
-  import { createField, presets } from '../src/index.js';
-  window.makeField = (adaptive, frameBudget) => createField(document.getElementById('field'), { preset: presets.adambiggs, overrides: { adaptive, quality: frameBudget === undefined ? undefined : { frameBudget } }, persist: false });
+  import { createBlorbo, presets } from '../src/index.js';
+  window.makeBlorbo = (adaptive, frameBudget) => createBlorbo(document.getElementById('blorbo'), { preset: presets.adambiggs, overrides: { adaptive, quality: frameBudget === undefined ? undefined : { frameBudget } }, persist: false });
 </script>
 </html>
