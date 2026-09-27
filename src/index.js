@@ -8,6 +8,7 @@ export { createSignalBus, presets };
 export { clock, viewport, scroll, pointer, click, orientation, midi, content, visibility, reducedMotion, theme, requestOrientationPermission } from './inputs.js';
 
 export function createBlorbo(canvas, { preset = presets.adambiggs, overrides = {}, inputs, persist = 'session' } = {}) {
+  if (!canvas?.getContext) throw new TypeError('createBlorbo requires a canvas');
   const config = resolvePreset(preset, overrides);
   const document = canvas.ownerDocument;
   const window = document.defaultView;
