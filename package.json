@@ -1,13 +1,25 @@
 {
   "name": "living-field",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Reactive canvas field backgrounds with pluggable inputs and presets",
   "type": "module",
+  "module": "./dist/living-field.js",
+  "exports": {
+    ".": "./dist/living-field.js",
+    "./inputs": "./src/inputs.js",
+    "./presets": "./src/presets.js"
+  },
+  "files": ["dist", "src", "LICENSE", "README.md"],
   "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepack": "npm run build",
     "snapshots:reference": "node test/snapshots.mjs reference",
-    "snapshots:compare": "node test/snapshots.mjs compare"
+    "snapshots:compare": "node test/snapshots.mjs compare",
+    "test:runtime": "node test/runtime.mjs",
+    "perf": "node test/perf.mjs"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "playwright-core": "1.58.0"
   },
   "license": "Apache-2.0"

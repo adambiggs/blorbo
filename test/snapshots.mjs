@@ -7,10 +7,12 @@ import { promisify } from 'node:util';
 import { chromium } from 'playwright-core';
 
 const mode = process.argv[2];
+const candidate = process.env.FIELD_CANDIDATE === '1';
 if (!['reference', 'compare'].includes(mode)) {
   console.error('Usage: npm run snapshots:reference|snapshots:compare');
   process.exit(2);
 }
+if (candidate && mode === 'reference') throw new Error('Candidate mode cannot replace reference PNGs');
 
 const here = resolve(import.meta.dirname, '..');
 const adambiggsProject = resolve(process.env.FIELD_ADAMBIGGS_PROJECT || resolve(here, '../adambiggs'));
@@ -19,7 +21,7 @@ const sites = {
   adambiggs: join(adambiggsProject, 'dist'),
 };
 const referenceDir = join(here, 'test/reference');
-const evidenceDir = join(here, '.evidence/snapshots');
+const evidenceDir = join(here, '.evidence/snapshots', candidate ? 'candidate' : 'baseline');
 const viewport = { width: 960, height: 640 };
 const epoch = Date.UTC(2026, 8, 26, 12);
 const cases = ['rest', 'scroll-pointer', 'click'];
@@ -29,14 +31,43 @@ const sources = {
 };
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
 
-function serve(root) {
+function serve(root, site) {
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost');
       const relative = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'index.html';
+      if (candidate && relative === 'field-candidate.js') {
+        res.writeHead(200, { 'content-type': 'text/javascript' });
+        res.end(site === 'gangline'
+          ? `window.__livingField = LivingField.createField(document.getElementById('field'), { preset: LivingField.presets.gangline, overrides: { adaptive: false } });\n`
+          : `import { createField, presets } from '/field-lib-dist/living-field.js';\nwindow.__livingField = createField(document.getElementById('field'), { preset: presets.adambiggs, overrides: { adaptive: false } });\n`);
+        return;
+      }
+      if (candidate && relative.startsWith('field-lib-dist/')) {
+        const path = resolve(here, 'dist', relative.slice('field-lib-dist/'.length));
+        if (!path.startsWith(join(here, 'dist') + sep)) throw new Error('outside library');
+        res.writeHead(200, { 'content-type': 'text/javascript' });
+        res.end(await readFile(path));
+        return;
+      }
       const path = resolve(root, relative);
       if (path !== root && !path.startsWith(root + sep)) throw new Error('outside site');
-      const body = await readFile(path);
+      let body = await readFile(path);
+      if (candidate && relative === 'index.html') {
+        let html = body.toString();
+        if (site === 'gangline') {
+          const old = '<script src="field.js" defer></script>';
+          if (!html.includes(old)) throw new Error('Gangline field script tag changed');
+          html = html.replace(old, '<script src="/field-lib-dist/living-field.iife.js" defer></script><script src="/field-candidate.js" defer></script>');
+        } else {
+          const canvas = html.indexOf('<canvas id="field"');
+          const start = html.indexOf('<script>', canvas);
+          const end = html.indexOf('</script>', start);
+          if (canvas < 0 || start < 0 || end < 0) throw new Error('Adam Biggs inline field script changed');
+          html = html.slice(0, start) + '<script type="module" src="/field-candidate.js"></script>' + html.slice(end + 9);
+        }
+        body = Buffer.from(html);
+      }
       res.writeHead(200, { 'content-type': mime[extname(path)] || 'application/octet-stream' });
       res.end(body);
     } catch {
@@ -68,6 +99,7 @@ async function capture(browser, site, baseUrl, theme, scene) {
     };
   }, epoch);
   await page.goto(baseUrl, { waitUntil: 'load' });
+  if (candidate && !(await page.evaluate(() => !!window.__livingField?.signals))) throw new Error(`${site} candidate field did not start`);
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate(() => Promise.all([...document.images].filter((image) => image.loading !== 'lazy').map((image) => image.decode().catch(() => {}))));
   await page.waitForFunction(() => [...document.querySelectorAll('video')].every((video) => video.readyState >= 1));
@@ -141,6 +173,17 @@ async function pixelDiff(page, actual, expected) {
 }
 
 await mkdir(evidenceDir, { recursive: true });
+if (candidate) {
+  const buildLog = join(evidenceDir, 'library-build.log');
+  try {
+    const { stdout, stderr } = await promisify(execFile)('npm', ['run', 'build'], { cwd: here, maxBuffer: 10 * 1024 * 1024 });
+    await writeFile(buildLog, stdout + stderr);
+  } catch (error) {
+    await writeFile(buildLog, (error.stdout || '') + (error.stderr || ''));
+    throw new Error(`Library build failed; see ${buildLog}`, { cause: error });
+  }
+  console.log(`Library build saved to ${buildLog}`);
+}
 const buildLog = join(evidenceDir, 'astro-build.log');
 try {
   const { stdout, stderr } = await promisify(execFile)('npm', ['run', 'build'], { cwd: adambiggsProject, maxBuffer: 10 * 1024 * 1024 });
@@ -169,7 +212,7 @@ try {
     throw new Error('Reference viewport or clock differs from current harness');
   }
   await mkdir(mode === 'reference' ? referenceDir : evidenceDir, { recursive: true });
-  const manifest = { chrome: browser.version(), viewport, epoch, ...(mode === 'compare' ? { roots: sites } : {}), sources: {}, cases: {} };
+  const manifest = { chrome: browser.version(), viewport, epoch, ...(mode === 'compare' ? { roots: sites, candidate } : {}), sources: {}, cases: {} };
   const captures = new Map();
   let failures = 0;
   for (const [site, root] of Object.entries(sites)) {
@@ -179,7 +222,7 @@ try {
       if (error.code !== 'ENOENT') throw error;
       manifest.sources[site] = null;
     }
-    const server = await serve(root); servers.push(server);
+    const server = await serve(root, site); servers.push(server);
     const baseUrl = `http://127.0.0.1:${server.address().port}/`;
     for (const theme of ['dark', 'light']) for (const scene of cases) {
       const name = `${site}-${theme}-${scene}`;
@@ -201,7 +244,10 @@ try {
       const expectedHash = createHash('sha256').update(expected).digest('hex');
       if (referenceManifest.cases[name] !== expectedHash) throw new Error(`Reference PNG or manifest changed: ${name}`);
       const { diff, ...metrics } = await pixelDiff(diffPage, actual, expected);
-      if (metrics.changed) await writeFile(join(evidenceDir, `${name}.png`), Buffer.from(diff, 'base64'));
+      if (metrics.changed) {
+        await writeFile(join(evidenceDir, `${name}.actual.png`), actual);
+        await writeFile(join(evidenceDir, `${name}.png`), Buffer.from(diff, 'base64'));
+      }
       const pass = metrics.mean <= 0.5 && metrics.large / metrics.pixels <= 0.01;
       if (!pass) failures++;
       manifest.cases[name] = { ...metrics, pass };
