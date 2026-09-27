@@ -19,4 +19,5 @@ jobs:
       - run: npm ci
       - run: npx playwright-core install --with-deps chromium
       - run: npm test
+      - run: npm run snapshots:compare
       - run: npm pack --dry-run

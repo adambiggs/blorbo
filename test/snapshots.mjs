@@ -7,25 +7,31 @@ import { promisify } from 'node:util';
 import { launchChromium } from './browser.mjs';
 
 const mode = process.argv[2];
+const siteMode = process.argv.includes('--sites');
 if (!['reference', 'compare'].includes(mode)) {
   console.error('Usage: npm run snapshots:reference|snapshots:compare');
   process.exit(2);
 }
 
 const here = resolve(import.meta.dirname, '..');
-const adambiggsProject = resolve(process.env.BLORBO_ADAMBIGGS_PROJECT || resolve(here, '../adambiggs'));
-const sites = {
+const adambiggsProject = siteMode ? resolve(process.env.BLORBO_ADAMBIGGS_PROJECT || resolve(here, '../adambiggs')) : null;
+const sites = siteMode ? {
   gangline: resolve(process.env.BLORBO_GANGLINE_SITE || resolve(here, '../gangline/site')),
   adambiggs: join(adambiggsProject, 'dist'),
-};
-const referenceDir = join(here, 'test/reference');
-const evidenceDir = join(here, '.evidence/snapshots/baseline');
+} : { rules: here, blocks: here };
+const referenceDir = join(here, 'test/reference', ...(siteMode ? [] : ['fixtures']));
+const evidenceDir = join(here, '.evidence/snapshots', siteMode ? 'sites' : 'fixtures');
 const viewport = { width: 960, height: 640 };
 const epoch = Date.UTC(2026, 8, 26, 12);
 const cases = ['rest', 'scroll-pointer', 'click'];
-const sources = {
+const siteSources = siteMode ? {
   gangline: resolve(process.env.BLORBO_GANGLINE_SOURCE || join(sites.gangline, 'blorbo.js')),
   adambiggs: resolve(process.env.BLORBO_ADAMBIGGS_SOURCE || join(adambiggsProject, 'src/components/Blorbo.astro')),
+} : null;
+const fixtureShared = ['fixture.css', 'fixture.js', 'shape.svg'].map((name) => join(here, 'test/fixtures', name));
+const sources = siteMode ? { gangline: [siteSources.gangline], adambiggs: [siteSources.adambiggs] } : {
+  rules: [join(here, 'test/fixtures/rules.html'), ...fixtureShared],
+  blocks: [join(here, 'test/fixtures/blocks.html'), ...fixtureShared],
 };
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
 
@@ -36,6 +42,8 @@ function serve(root, site) {
       const relative = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'index.html';
       const path = resolve(root, relative);
       if (path !== root && !path.startsWith(root + sep)) throw new Error('outside site');
+      if (!siteMode && path !== join(here, 'dist/blorbo.iife.js') && !path.startsWith(join(here, 'test/fixtures') + sep))
+        throw new Error('outside fixture');
       const body = await readFile(path);
       res.writeHead(200, { 'content-type': mime[extname(path)] || 'application/octet-stream' });
       res.end(body);
@@ -67,7 +75,9 @@ async function capture(browser, site, baseUrl, theme, scene) {
       }
     };
   }, epoch);
-  await page.goto(baseUrl, { waitUntil: 'load' });
+  const target = siteMode ? baseUrl : new URL(`test/fixtures/${site}.html`, baseUrl).href;
+  const response = await page.goto(target, { waitUntil: 'load' });
+  if (!response.ok()) throw new Error(`Fixture request returned HTTP ${response.status()}: ${target}`);
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate(() => Promise.all([...document.images].filter((image) => image.loading !== 'lazy').map((image) => image.decode().catch(() => {}))));
   await page.waitForFunction(() => [...document.querySelectorAll('video')].every((video) => video.readyState >= 1));
@@ -91,7 +101,7 @@ async function capture(browser, site, baseUrl, theme, scene) {
   if (errors.length) throw new Error(`Page error: ${errors.join('; ')}`);
   const data = await page.evaluate(({ width, height }) => {
     const blorbo = document.getElementById('blorbo');
-    if (!blorbo || blorbo.width !== width) throw new Error('Blorbo canvas missing or wrong width');
+    if (!blorbo || blorbo.width !== width) throw new Error(`Blorbo canvas missing or wrong width: ${blorbo?.width}`);
     const output = document.createElement('canvas');
     output.width = width; output.height = height;
     output.getContext('2d').drawImage(blorbo, 0, 240, width, height, 0, 0, width, height);
@@ -141,16 +151,18 @@ async function pixelDiff(page, actual, expected) {
 }
 
 await mkdir(evidenceDir, { recursive: true });
-const buildLog = join(evidenceDir, 'astro-build.log');
-try {
-  const { stdout, stderr } = await promisify(execFile)('npm', ['run', 'build'], { cwd: adambiggsProject, maxBuffer: 10 * 1024 * 1024 });
-  await writeFile(buildLog, stdout + stderr);
-} catch (error) {
-  await writeFile(buildLog, (error.stdout || '') + (error.stderr || ''));
-  throw new Error(`Adam Biggs build failed; see ${buildLog}`, { cause: error });
+if (siteMode) {
+  const buildLog = join(evidenceDir, 'astro-build.log');
+  try {
+    const { stdout, stderr } = await promisify(execFile)('npm', ['run', 'build'], { cwd: adambiggsProject, maxBuffer: 10 * 1024 * 1024 });
+    await writeFile(buildLog, stdout + stderr);
+  } catch (error) {
+    await writeFile(buildLog, (error.stdout || '') + (error.stderr || ''));
+    throw new Error(`Adam Biggs build failed; see ${buildLog}`, { cause: error });
+  }
+  console.log(`Adam Biggs build saved to ${buildLog}`);
 }
-console.log(`Adam Biggs build saved to ${buildLog}`);
-const browser = await launchChromium();
+const browser = await launchChromium({ bundled: !siteMode });
 const servers = [];
 try {
   if (mode === 'reference' && !process.argv.includes('--force')) {
@@ -174,11 +186,15 @@ try {
   let failures = 0;
   for (const [site, root] of Object.entries(sites)) {
     try {
-      manifest.sources[site] = createHash('sha256').update(await readFile(sources[site])).digest('hex');
+      const hash = createHash('sha256');
+      for (const source of sources[site]) hash.update(await readFile(source));
+      manifest.sources[site] = hash.digest('hex');
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
       manifest.sources[site] = null;
     }
+    if (!siteMode && referenceManifest && referenceManifest.sources[site] !== manifest.sources[site])
+      throw new Error(`Fixture sources changed: ${site}; regenerate references`);
     const server = await serve(root, site); servers.push(server);
     const baseUrl = `http://127.0.0.1:${server.address().port}/`;
     for (const theme of ['dark', 'light']) for (const scene of cases) {

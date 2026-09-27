@@ -1,0 +1,26 @@
+{
+  "chrome": "153.0.8010.12",
+  "viewport": {
+    "width": 960,
+    "height": 640
+  },
+  "epoch": 1790424000000,
+  "sources": {
+    "rules": "ad952815639c0c6a2f776838c25f31d385e41c41b4b0a05df77dcf9e2a3f6759",
+    "blocks": "4a36a17277561cccf71388e919a7268a5ec40864eb942713a1f6d5d0b0d1b436"
+  },
+  "cases": {
+    "rules-dark-rest": "fb98aaa45f86d608f25cef43ca53ccee320b773d9bef6bf88fcaee8ea2a17b15",
+    "rules-dark-scroll-pointer": "a929b30e2036007fd01b0a59a8d50353e2af803c93256744a79663a9616f65ab",
+    "rules-dark-click": "adcac2433fc02b3cce5740b167dbbe60cb743ded6537aa7ac6efe1743a055666",
+    "rules-light-rest": "87a96c7349d6e9b89fb8a560e4b5f26bfdd7da36db7fed650bd44f93df2ccd49",
+    "rules-light-scroll-pointer": "8e347b9d19d42014bfdee074e5d11951600d90ba2456cbe96e527da1485dea37",
+    "rules-light-click": "b78bf46f6c535df93d2942ace536a495e83023776394cbe8988fc8af92c22f0c",
+    "blocks-dark-rest": "53c917cfe806043a3367119154003d8b713c0497e186081bfff392647219807c",
+    "blocks-dark-scroll-pointer": "0dc1ed1bf93a39d01a6091cf5e3b111f102a03026f4dcbd1a65ef513a80b82fa",
+    "blocks-dark-click": "382466f93c4f7ad3830fbfeae2c3fc7a26289cee25e26679052751dce4c550c1",
+    "blocks-light-rest": "147e8bd1bf5316a3375d9fca3a581755d63469acdd62354dc9348f08b897448c",
+    "blocks-light-scroll-pointer": "09d1dbbdbb3f7dc4975145c696727493296a07a72d091e8010ea5d6f573532ba",
+    "blocks-light-click": "7f433d70221e4e65fc3b4afe13ae0ca24c531c6076100e62294a6cff27526f96"
+  }
+}

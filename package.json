@@ -22,9 +22,13 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "prepack": "npm run build",
-    "test": "npm run build && npm run test:runtime",
-    "snapshots:reference": "node test/snapshots.mjs reference",
-    "snapshots:compare": "node test/snapshots.mjs compare",
+    "test": "npm run test:unit && npm run test:runtime",
+    "test:unit": "npm run build && node --test test/unit/*.test.mjs",
+    "test:coverage": "npm run build && node --experimental-test-coverage --test-coverage-include='src/*.js' --test test/unit/*.test.mjs",
+    "snapshots:reference": "npm run build && node test/snapshots.mjs reference",
+    "snapshots:compare": "npm run build && node test/snapshots.mjs compare",
+    "snapshots:sites": "node test/site-snapshots.mjs compare",
+    "snapshots:sites:reference": "node test/site-snapshots.mjs reference",
     "test:runtime": "node test/runtime.mjs",
     "perf": "node test/perf.mjs"
   },

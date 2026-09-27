@@ -80,6 +80,8 @@ theme.
 (0–1), `scroll.px`, `scroll.velocity` (viewport heights per second),
 `pointer.x/y` (0–1), `tilt.x/y`, `clock` (Unix seconds), and `midi.cc.N`
 (0–1). Events include `click` and `midi.note`.
+For host events, `signals.subscribe(name, listener)` returns an unsubscribe
+function; `signals.emit(name, value)` calls listeners in registration order.
 
 Call `blorbo.enableMIDI()` from a user gesture; it returns `false` if MIDI is
 unavailable or denied. The adapter emits notes, controls, pitch bend, and
@@ -130,11 +132,13 @@ in desktop Safari. Firefox and mobile browsers have not been tested. MIDI
 requires Web MIDI and a user gesture. The canvas is decorative; keep its
 wrapper `aria-hidden="true"`.
 
-Run `npm ci && npm test`. On macOS the tests use Google Chrome if installed;
-otherwise run `npx playwright-core install chromium` or set `CHROME_PATH`.
-`npm run perf` measures frame cost at three viewport sizes. The visual
-snapshots need sibling Gangline and Adam Biggs checkouts and a matching browser
-version. Run `npm run snapshots:compare`; see
+Run `npm ci && npm test` for unit and Chromium runtime tests. On macOS the
+runtime uses Google Chrome if installed; otherwise run
+`npx playwright-core install chromium` or set `CHROME_PATH`. Run
+`npm run snapshots:compare` for the 12 synthetic fixture frames used in CI;
+it uses Playwright's bundled Chromium. The real-site gate needs sibling
+Gangline and Adam Biggs checkouts: run `npm run snapshots:sites` before a
+release. `npm run perf` measures frame cost at three viewport sizes. See
 [test/README.md](https://github.com/adambiggs/blorbo/blob/main/test/README.md)
 for paths and overrides.
 

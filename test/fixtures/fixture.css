@@ -1,0 +1,20 @@
+:root {
+  color-scheme: dark light;
+  --glyph: 232,230,223;
+  --glyph-gain: 1;
+  --glyph-floor: 0.025;
+  --ring: 255,221,0;
+  --live: 240,162,60;
+}
+@media (prefers-color-scheme: light) {
+  :root { --glyph: 24,42,54; --glyph-gain: 1; --glyph-floor: 0.04; --ring: 160,80,10; --live: 120,70,30; }
+}
+html, body { margin: 0; }
+body { min-height: 1900px; font: 20px/1.4 monospace; }
+.bgfx { position: fixed; inset: 0; pointer-events: none; }
+.bgfx canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+main { position: relative; margin: 0 auto; width: 760px; padding-top: 110px; }
+h1 { width: 620px; margin: 0 0 46px; font-size: 34px; line-height: 1.2; }
+p { width: 560px; margin: 0 0 42px; }
+img { display: block; width: 300px; height: 180px; margin: 70px 0; }
+.lower { margin-top: 370px; }
