@@ -1,7 +1,7 @@
 {
   "name": "blorbo",
   "version": "0.1.0",
-  "description": "Reactive canvas field backgrounds with pluggable inputs and presets",
+  "description": "Page content shapes animated canvas backgrounds through text and media interaction",
   "type": "module",
   "module": "./dist/blorbo.js",
   "unpkg": "./dist/blorbo.iife.js",
@@ -17,7 +17,7 @@
   "repository": { "type": "git", "url": "git+https://github.com/adambiggs/blorbo.git" },
   "homepage": "https://github.com/adambiggs/blorbo#readme",
   "bugs": { "url": "https://github.com/adambiggs/blorbo/issues" },
-  "keywords": ["canvas", "background", "animation", "reactive", "visualization"],
+  "keywords": ["page-content", "content-reactive", "canvas", "background", "animation", "visualization"],
   "publishConfig": { "access": "public" },
   "scripts": {
     "build": "node scripts/build.mjs",
