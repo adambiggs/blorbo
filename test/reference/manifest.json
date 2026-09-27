@@ -1,0 +1,26 @@
+{
+  "chrome": "153.0.8010.54",
+  "viewport": {
+    "width": 960,
+    "height": 640
+  },
+  "epoch": 1790424000000,
+  "sources": {
+    "gangline": "cea9c03b23d52078903dfb8b395251d0d352332209c205fe2108dd863ca23d67",
+    "adambiggs": "9e69706d99e163624389b3dc76e02172c15602fd21df155dfc6de71c704b5339"
+  },
+  "cases": {
+    "gangline-dark-rest": "9660d53d1bf9e5bd70e17a16b488040664af6d7b98ab9de8a7bd129e817f69fa",
+    "gangline-dark-scroll-pointer": "800c59bd5d64b760569ee72a258b128af0d6ab9751933e0dc48a948ebcb15fa4",
+    "gangline-dark-click": "0d8f996b28c2cf414f9c1a387675c8a909c3b5709a890243a50f2cc047e0e5d9",
+    "gangline-light-rest": "f6c11eec120e8b6f6a458701c93f288c7ff2126ef481b33b65742e6cbd41c33c",
+    "gangline-light-scroll-pointer": "a6dcd4b3f08a8d8ecc1ad538a66bc15ebb8c63bc3b75e37440bc1376b29dbd76",
+    "gangline-light-click": "4304ceff33733ef035bb09f4e51c84e584bd3240e954afdc6fa718791c79c104",
+    "adambiggs-dark-rest": "8a511a21247f6bf644df130a70300eac5afb01cd725411d6c78624d3066cb01b",
+    "adambiggs-dark-scroll-pointer": "ad90a7416ae592c8c91baf0e0af06144ede578a91de611812e6c4a53677b684c",
+    "adambiggs-dark-click": "9186245199a0b7dd45612ba87e01f96a38e60e43279281b4ca76498d805a4364",
+    "adambiggs-light-rest": "294c98389cd2e7b970c89a868848553af5e639ba628ed389edbb0df1ff5ce741",
+    "adambiggs-light-scroll-pointer": "fd26ef45ba63757261b1cb52d4d76f7e0e012e901620214b08818e4dedcea612",
+    "adambiggs-light-click": "9476a126fc064cebc6bb6104ba2582db08ffa0f87f1bef9bb91a04a1bceea9ef"
+  }
+}
