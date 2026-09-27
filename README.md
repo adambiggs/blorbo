@@ -46,7 +46,7 @@ Without a bundler, load `dist/blorbo.iife.js` from a CDN or copy it into the
 site. It exposes `window.Blorbo`:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/blorbo@0.1.0/dist/blorbo.iife.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/blorbo@0.1.1/dist/blorbo.iife.js"></script>
 <script>
   Blorbo.createBlorbo(document.getElementById('blorbo'), {
     preset: Blorbo.presets.adambiggs,
@@ -81,7 +81,8 @@ theme.
 `pointer.x/y` (0–1), `tilt.x/y`, `clock` (Unix seconds), and `midi.cc.N`
 (0–1). Events include `click` and `midi.note`.
 For host events, `signals.subscribe(name, listener)` returns an unsubscribe
-function; `signals.emit(name, value)` calls listeners in registration order.
+function; `signals.unsubscribe(name, listener)` removes one registration of
+that listener. `signals.emit(name, value)` calls listeners in registration order.
 
 Call `blorbo.enableMIDI()` from a user gesture; it returns `false` if MIDI is
 unavailable or denied. The adapter emits notes, controls, pitch bend, and

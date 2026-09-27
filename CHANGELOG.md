@@ -2,10 +2,11 @@
 
 ## [0.1.1] - 2026-09-27
 
-- Signal subscriptions now run in registration order and can be removed individually.
+- Added signal-bus `subscribe`, `unsubscribe`, and `emit`. Listeners run in
+  registration order; each unsubscribe removes one registration, including
+  when the same listener is subscribed more than once.
 - Content input no longer measures the page after detach when fonts finish loading.
 - `createBlorbo` rejects an invalid canvas with a clear `TypeError`.
-- Unsubscribing one registration no longer removes another registration of the same listener.
 
 ## [0.1.0] - 2026-09-26
 
