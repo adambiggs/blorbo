@@ -12,7 +12,7 @@
     "./presets": "./src/presets.js"
   },
   "sideEffects": false,
-  "files": ["dist", "src", "LICENSE", "README.md", "CHANGELOG.md", "CONTRIBUTING.md"],
+  "files": ["dist", "src", "docs", "demo", "LICENSE", "README.md", "CHANGELOG.md", "CONTRIBUTING.md"],
   "engines": { "node": ">=20.11" },
   "repository": { "type": "git", "url": "git+https://github.com/adambiggs/blorbo.git" },
   "homepage": "https://github.com/adambiggs/blorbo#readme",
@@ -22,8 +22,9 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "prepack": "npm run build",
-    "test": "npm run test:unit && npm run test:runtime",
+    "test": "npm run test:unit && npm run test:docs && npm run test:runtime",
     "test:unit": "npm run build && node --test test/unit/*.test.mjs",
+    "test:docs": "npm run build && node --test test/docs.test.mjs",
     "test:coverage": "npm run build && node --experimental-test-coverage --test-coverage-include='src/*.js' --test test/unit/*.test.mjs",
     "snapshots:reference": "npm run build && node test/snapshots.mjs reference",
     "snapshots:compare": "npm run build && node test/snapshots.mjs compare",
