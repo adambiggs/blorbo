@@ -18,9 +18,9 @@ export function createField(canvas, { preset = presets.adambiggs, overrides = {}
   let destroyed = false, frame = 0, last = 0, width = 0, height = 0, dpr = 0;
   const levels = config.quality?.levels || [
     { cellScale: 1, spillSteps: 18 },
-    { cellScale: 1.25, spillSteps: 12 },
-    { cellScale: 1.5, spillSteps: 8 },
-    { cellScale: 2, spillSteps: 5 },
+    { cellScale: 1, spillSteps: 12 },
+    { cellScale: 1, spillSteps: 8 },
+    { cellScale: 1, spillSteps: 5 },
   ];
   const frameBudget = config.quality?.frameBudget ?? 12;
   const stats = { quality: 0, lastFrameMs: 0, averageFrameMs: 0, frames: 0 };

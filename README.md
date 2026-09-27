@@ -131,8 +131,9 @@ computed style every frame. Device pixel ratio is capped at 2 by default.
 For a fixed card composition, `overrides.staticBodies` replaces the wandering
 bodies with `[x, y, radiusX, radiusY, weight]` entries in CSS pixels.
 
-The default 12 ms frame budget reduces cell density and spill passes when a
-rolling sample exceeds it, then restores detail after sustained spare time.
+The default 12 ms frame budget reduces spill passes when a rolling sample
+exceeds it, then restores detail after sustained spare time. Glyph spacing
+stays fixed across quality tiers.
 Inspect `field.stats` for frame cost and quality level. Override the budget
 with `quality: { frameBudget: 10 }` or disable adaptation with
 `adaptive: false` for a fixed render.

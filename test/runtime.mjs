@@ -163,22 +163,38 @@ try {
     return { stillRepeatable: true, clockMappingRepeatable: true, blockedStorage: true, customGlyphDraws: glyphDraws, customClickEvents: clicks, lateMIDI: true };
   });
   result.qualityTransitions = await page.evaluate(async () => {
-    const field = window.makeField(true, 0.1);
     const canvas = document.getElementById('field');
+    const originalDrawImage = CanvasRenderingContext2D.prototype.drawImage;
+    const widthsByTier = Array.from({ length: 4 }, () => new Set());
+    let field;
+    CanvasRenderingContext2D.prototype.drawImage = function (...args) {
+      if (this.canvas === canvas && args.length === 5 && field) widthsByTier[field.stats.quality].add(args[3]);
+      return originalDrawImage.apply(this, args);
+    };
     let prior = 0, transitions = 0;
-    for (let i = 0; i < 70; i++) {
-      await new Promise((done) => requestAnimationFrame(done));
-      if (field.stats.quality === prior) continue;
-      prior = field.stats.quality;
-      transitions++;
-      const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-      let visible = false;
-      for (let p = 3; p < pixels.length; p += 4) if (pixels[p]) { visible = true; break; }
-      if (!visible) throw new Error(`Quality transition ${prior} cleared the visible canvas`);
+    try {
+      field = window.makeField(true, 0.1);
+      for (let i = 0; i < 70; i++) {
+        await new Promise((done) => requestAnimationFrame(done));
+        if (field.stats.quality === prior) continue;
+        prior = field.stats.quality;
+        transitions++;
+        const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+        let visible = false;
+        for (let p = 3; p < pixels.length; p += 4) if (pixels[p]) { visible = true; break; }
+        if (!visible) throw new Error(`Quality transition ${prior} cleared the visible canvas`);
+      }
+      if (transitions !== 3) throw new Error(`Expected three quality transitions, got ${transitions}`);
+      const baseWidth = [...widthsByTier[0]][0];
+      for (let tier = 0; tier < widthsByTier.length; tier++) {
+        const widths = [...widthsByTier[tier]];
+        if (widths.length !== 1 || widths[0] !== baseWidth) throw new Error(`Quality tier ${tier} changed glyph pitch: ${widths}`);
+      }
+      return { transitions, spriteWidths: widthsByTier.map((widths) => [...widths]) };
+    } finally {
+      field?.destroy();
+      CanvasRenderingContext2D.prototype.drawImage = originalDrawImage;
     }
-    field.destroy();
-    if (transitions !== 3) throw new Error(`Expected three quality transitions, got ${transitions}`);
-    return transitions;
   });
   console.log(JSON.stringify(result));
 } finally {
