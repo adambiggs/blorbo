@@ -1,7 +1,7 @@
 {
   "name": "blorbo",
   "version": "0.1.0",
-  "description": "Page content shapes animated canvas backgrounds through text and media interaction",
+  "description": "Canvas background shaped by page text, images, pointer, and scroll",
   "type": "module",
   "module": "./dist/blorbo.js",
   "unpkg": "./dist/blorbo.iife.js",

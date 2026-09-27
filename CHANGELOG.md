@@ -1,17 +1,12 @@
 # Changelog
 
-All notable changes to this project are documented here. The format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-
 ## [0.1.0] - 2026-09-26
 
-### Added
+- Page text and media shape a canvas glyph field; marked elements pin bodies.
+- ESM and IIFE builds expose input adapters, signals, and two glyph presets.
+- Adaptive spill quality keeps glyph pitch and body state stable; `still(t)`
+  draws a fixed-time frame.
 
-- ESM and IIFE builds with pluggable inputs, signal bus, and glyph presets.
-- Scroll, pointer, click, orientation, MIDI, content, theme, and visibility
-  adapters.
-- Adaptive spill quality with stable glyph pitch and continuous body motion.
-- Deterministic `still(t)` frames and lifecycle cleanup.
-- Runtime, performance, and local visual snapshot harnesses.
+0.1.0 was published without a provenance attestation.
 
 [0.1.0]: https://github.com/adambiggs/blorbo/releases/tag/v0.1.0

@@ -1,9 +1,8 @@
 # Blorbo
 
-Blorbo turns page content into an animated canvas background: marked headings
-attract soft bodies, while other text and images push the field aside. Scroll,
-pointer, click, orientation, theme, and optional MIDI can shape it too. The
-included presets draw vertical rules or block glyphs on fixed cells.
+Blorbo draws a canvas background shaped by page content. Elements marked
+`data-blob` attract soft bodies; other text and images clear space in the glyph
+grid. Scroll, pointer, clicks, orientation, theme, and optional MIDI also affect it.
 
 ## Install and use
 
@@ -15,15 +14,14 @@ npm install blorbo
 <div class="bgfx" aria-hidden="true"><canvas id="blorbo"></canvas></div>
 <main>
   <h1 data-blob>Content shapes the background</h1>
-  <p>This paragraph pushes the field aside; the heading draws it in.</p>
+  <p>This paragraph pushes the field aside.</p>
 </main>
 ```
 
 ```css
-:root { --g1: #182a35; --g2: #254758; --g3: #142a35;
-  --glyph: 232,230,223; --ring: 255,221,0; }
-.bgfx { position: fixed; inset: 0; pointer-events: none;
-  z-index: 0; background: linear-gradient(135deg, var(--g1), var(--g2), var(--g3)); }
+:root { --glyph: 232,230,223; --ring: 255,221,0; }
+.bgfx { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(135deg, #182a35, #254758, #142a35); }
 .bgfx canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 main { position: relative; z-index: 1; }
 ```
@@ -32,148 +30,112 @@ main { position: relative; z-index: 1; }
 import { createBlorbo, presets } from 'blorbo';
 
 const blorbo = createBlorbo(document.getElementById('blorbo'), {
-  preset: presets.adambiggs, // or presets.gangline
-  persist: 'session',
+  preset: presets.adambiggs,
 });
 ```
 
-The default `content()` input reads the page's text and media bounds. Mark
-headings or other content with `data-blob` to attract the field; unmarked text
-and media repel it. The [content demo](https://github.com/adambiggs/blorbo/blob/main/demo/content.html)
-changes page text while the field runs. For client-side routing, call
-`blorbo.remeasure()` after mounting new content. Call `blorbo.destroy()` when
-removing the canvas.
+Call `blorbo.remeasure()` after client-side content changes and
+`blorbo.destroy()` when removing the canvas. The
+[content demo](https://github.com/adambiggs/blorbo/blob/main/demo/content.html)
+adds and removes text while the field runs.
 
-For pages without a bundler, load the IIFE build from a CDN or copy
-`dist/blorbo.iife.js` into your site. It exposes `window.Blorbo`:
+By default, `persist: 'session'` restores recent cursor, mask, and click state
+from `sessionStorage`; pass `persist: false` to disable it.
+
+Without a bundler, load `dist/blorbo.iife.js` from a CDN or copy it into the
+site. It exposes `window.Blorbo`:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/blorbo@0.1.0/dist/blorbo.iife.js"></script>
 <script>
-  const blorbo = Blorbo.createBlorbo(document.getElementById('blorbo'), {
+  Blorbo.createBlorbo(document.getElementById('blorbo'), {
     preset: Blorbo.presets.adambiggs,
   });
 </script>
 ```
 
-The package's module API is ESM only. `blorbo/inputs` and `blorbo/presets`
-expose the individual adapters and presets for bundlers. The CDN fields
-select the separate IIFE build.
+The module exports `createBlorbo` and `presets`; `blorbo/inputs` exports the
+individual adapters. The host sets the background and CSS colours: `--glyph`
+is an `r,g,b` triplet; blocks also read `--glyph-gain`, `--glyph-floor`, and
+`--ring`, while rules read `--live`.
 
-The host supplies the gradient and CSS variables: `--glyph` is an `r,g,b`
-triplet. The block preset also reads `--glyph-gain`, `--glyph-floor`, and
-`--ring`; the line preset reads `--live`. `data-blob="words"` gives the block
-preset one body per word and gap.
+## Content and other inputs
 
-## Page content, presets, and signals
+The default `content({ pin: '[data-blob]' })` adapter measures text and the
+preset's media selector (`img` or `img,video`). Unmarked content repels the
+field. `data-blob` pins a body to an element; `data-blob="words"` with the
+`adambiggs` preset pins one body per word and gap. Flowing content follows
+scroll; fixed and sticky content stays at its screen position. The adapter
+remeasures on load, resize, root size change, and font readiness. Call
+`remeasure()` after DOM changes that do not resize the root.
 
-`content({ pin: '[data-blob]' })` is a named input adapter, exported from
-`blorbo/inputs` alongside `scroll()` and `pointer()`. It is included by default;
-pass it in `inputs` when replacing the default adapter set. It measures ordinary
-text, preset-selected media (`img` or `img,video`), and marked elements. Flowing
-content follows document scroll; fixed and sticky content is measured on screen.
-It remeasures on load, resize, root size changes, and font readiness. Call
-`remeasure()` after client-side content changes that may not resize the root.
+Passing `inputs` to `createBlorbo` replaces the defaults. Include `content()`
+if the custom set should still react to the page. Each adapter has `attach`,
+`detach`, and optionally `update`. The defaults are content, viewport, clock,
+scroll, pointer, click, orientation, MIDI, visibility, reduced motion, and
+theme.
 
-`presets.gangline` uses six vertical-rule glyphs, a live column pulse on
-click, and video avoidance. `presets.adambiggs` uses four block glyphs, a
-click ring, smaller per-word pinned bodies, and a brightness cap. Both use
-the same physics and mask/spill renderer. Pass `overrides` for another site's
-cell, glyph, click effect, content mode, quality settings, or signal mapping.
+`blorbo.signals` is the bus. `setSignal(name, value)` sets continuous values;
+`pushSignal(name, event)` queues events. Continuous names include `scroll`
+(0–1), `scroll.px`, `scroll.velocity` (viewport heights per second),
+`pointer.x/y` (0–1), `tilt.x/y`, `clock` (Unix seconds), and `midi.cc.N`
+(0–1). Events include `click` and `midi.note`.
+
+Call `blorbo.enableMIDI()` from a user gesture; it returns `false` if MIDI is
+unavailable or denied. The adapter emits notes, controls, pitch bend, and
+clock ticks. `overrides.midiPulse = true` turns note-on messages into wells.
+On browsers that require orientation permission, call the exported
+`requestOrientationPermission()` from a host button.
+
+## Presets and rendering
+
+`presets.gangline` draws six vertical-rule glyphs, pulses a column on click,
+and avoids videos. `presets.adambiggs` draws four block glyphs, a click ring,
+per-word pins, and a brightness cap. Pass `overrides` for cell dimensions,
+glyphs, click effect, content mode, quality, or signal mapping:
 
 ```js
-const blorbo = createBlorbo(canvas, {
+createBlorbo(canvas, {
   preset: presets.adambiggs,
   overrides: {
     cell: { width: 18, height: 22 },
-    clickEffect: 'line',
     mapSignals(bus) {
-      const knob = bus.get('midi.cc.1') ?? 0;
-      return { drift: 14 + 70 * knob, gain: 1 + 0.7 * knob };
+      return { drift: 14 + 70 * (bus.get('midi.cc.1') ?? 0) };
     },
   },
 });
 ```
 
-For a new glyph set, pass a `glyph` object with `style: 'blocks'` or
-`'lines'`, a `ramp` array (or function of `{ width, height }`), one fewer
-`steps` thresholds than ramp entries, a `halo` strength per entry, and
-`draw(ctx, entry, metrics)`. The draw callback paints one glyph sprite;
-`metrics` contains `width`, `height`, `dpr`, `glow`, `spriteWidth`,
-`spriteHeight`, and `unit`. The library calls it when sprites are built, not
-on every frame. A custom `clickEffect` is a factory returning an object with
-`onClick({ x, y, age, width, height, cellWidth, cellHeight })` and
-`draw({ ctx, width, height, time, dt, still, over, cellWidth, cellHeight })`.
-The draw callback paints above the field. The factory creates independent
-state per Blorbo instance; it may also return `destroy()` for cleanup.
+A custom `glyph` supplies `style`, a `ramp` (array or function of cell size),
+`steps` (one fewer than ramp entries), one `halo` value per entry, and
+`draw(ctx, entry, metrics)`. `metrics` has cell size, DPR, glow, sprite size,
+and unit. A custom `clickEffect` factory returns `onClick(...)` and `draw(...)`
+callbacks and may return `destroy()`. The factory runs once per instance.
 
-The signal bus is available as `blorbo.signals`, `blorbo.setSignal(name, value)`,
-and `blorbo.pushSignal(name, event)`. Continuous values include `scroll` (0–1),
-`scroll.px`, `scroll.velocity` (viewport heights per second), `pointer.x/y`
-(0–1), `tilt.x/y` (gravity), `clock` (Unix seconds), and `midi.cc.N` (0–1).
-Event queues include `click` and `midi.note`. Default adapters attach for
-page content, viewport, clock, scroll, pointer, click, orientation, MIDI,
-visibility, reduced motion, and theme. Passing `inputs` replaces that set;
-each adapter has `attach` and `detach`, and can optionally have `update`.
+`blorbo.still(t)` returns a frame at Unix time `t`. For cards,
+`overrides.staticBodies` accepts `[x, y, radiusX, radiusY, weight]` entries in
+CSS pixels. `destroy()` removes listeners and cancels animation. Hidden pages
+pause; reduced motion draws a still frame. DPR is capped at 2 by default.
 
-MIDI access starts only after a user gesture:
+Adaptive quality samples frame cost against a 12 ms budget and changes spill
+passes after at least three seconds of visible animation; glyph pitch and body
+state stay fixed. Read `blorbo.stats` for frame cost and tier. Configure
+`overrides.quality.frameBudget`, `minDwellMs`, or `levels` (with `spillSteps` and
+`cellScale: 1`), or set `overrides.adaptive = false`.
 
-```js
-button.addEventListener('click', async () => {
-  const enabled = await blorbo.enableMIDI();
-  // The call returns false when MIDI is unavailable or permission is denied.
-});
-```
+## Browser support and tests
 
-The MIDI adapter emits note on/off with velocity, control changes, pitch bend,
-and clock ticks. Set `overrides.midiPulse = true` to turn note-on messages into
-field wells. `demo/midi.html` has a CC 1 knob and note button. Orientation
-permission can be requested from a host button with
-`requestOrientationPermission()`; the listener itself never prompts.
+The runtime suite uses Chromium; the integrated sites have also been measured
+in desktop Safari. Firefox and mobile browsers have not been tested. MIDI
+requires Web MIDI and a user gesture. The canvas is decorative; keep its
+wrapper `aria-hidden="true"`.
 
-## Still frames and performance
+Run `npm ci && npm test`. On macOS the tests use Google Chrome if installed;
+otherwise run `npx playwright-core install chromium` or set `CHROME_PATH`.
+`npm run perf` measures frame cost at three viewport sizes. The visual
+snapshots need sibling Gangline and Adam Biggs checkouts and a matching browser
+version. Run `npm run snapshots:compare`; see
+[test/README.md](https://github.com/adambiggs/blorbo/blob/main/test/README.md)
+for paths and overrides.
 
-`blorbo.still(t)` draws a frame at Unix time `t` and returns the canvas. It
-works for share cards and reduced-motion views. `destroy()` removes all
-listeners and cancels the animation loop. Hidden pages pause, reduced-motion
-changes redraw once, and theme changes rebuild glyph sprites without reading
-computed style every frame. Device pixel ratio is capped at 2 by default.
-For a fixed card composition, `overrides.staticBodies` replaces the wandering
-bodies with `[x, y, radiusX, radiusY, weight]` entries in CSS pixels.
-
-The default 12 ms frame budget reduces spill passes when a rolling sample
-exceeds it, then restores detail after sustained spare time. Tier changes
-require at least three seconds of visible animation between applied tiers.
-Glyph spacing stays fixed across quality tiers.
-Inspect `blorbo.stats` for frame cost and quality level. Override the budget
-with `quality: { frameBudget: 10, minDwellMs: 3000 }` or disable adaptation with
-`adaptive: false` for a fixed render. Custom `quality.levels` may change
-`spillSteps`; each level must keep `cellScale: 1`.
-
-## Browser support and testing
-
-The builds target Safari 16.4+, Chrome 100+, and Firefox 100+. The runtime
-test runs in headless Chromium; the integrated backgrounds have also been
-measured in desktop Safari. Other browser and device combinations are not
-part of a tested support matrix. MIDI needs Web MIDI and a user gesture;
-orientation permission depends on the browser and host page. The canvas is
-decorative and should have `aria-hidden="true"` on its wrapper, as above.
-
-From a checkout, run `npm ci` and `npm test`. On macOS, the test uses Google
-Chrome if installed. Otherwise install Playwright Chromium with
-`npx playwright-core install chromium`, or set `CHROME_PATH` to a Chrome
-executable.
-`npm run perf` measures headless Chromium frame costs at three viewport sizes.
-The visual snapshots compare two integration fixtures that live in sibling
-repositories, so they are a local gate rather than part of package CI. Set
-`BLORBO_GANGLINE_SITE` and `BLORBO_ADAMBIGGS_PROJECT` when those checkouts use
-other paths; see [test/README.md](test/README.md) for details. Serve this
-directory over HTTP to open `demo/content.html`, `demo/midi.html`, or
-`demo/phone-perf.html`.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development and release steps and
-[CHANGELOG.md](CHANGELOG.md) for the published changes.
-
-## License
-
-Apache-2.0. See [LICENSE](LICENSE).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for release steps. License: Apache-2.0.
