@@ -268,10 +268,12 @@ export function content({ pin = '[data-blob]' } = {}) {
     update,
     remeasure: measure,
     detach() {
+      ready = false;
       ctx.document.removeEventListener('DOMContentLoaded', onReady);
       ctx.window.removeEventListener('resize', onResize);
       ctx.window.removeEventListener('load', onLoad);
       observer?.disconnect();
+      ctx = null;
     },
   };
 }
