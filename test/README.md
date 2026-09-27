@@ -6,6 +6,10 @@ a fixed wall clock, instant scroll to 500 px, pointer, and click sequence. The
 harness controls animation frames and waits for fonts and media metadata.
 Gangline's unrelated demo controls are held fixed during capture.
 
+These snapshots are a local gate, not a GitHub Actions job: they need both
+separate site checkouts and the exact Chromium version in the reference
+manifest. CI runs `npm test`, which exercises the standalone runtime instead.
+
 Run `npm run snapshots:compare` here; it first builds the Adam Biggs site and
 stores the build output in `.evidence/snapshots/baseline/astro-build.log`. The
 comparison writes metrics and any diff PNGs to `.evidence/snapshots/baseline/`.

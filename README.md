@@ -3,8 +3,7 @@
 A canvas field of soft bodies and fixed glyph cells. It reacts to page content,
 scroll, pointer, click, orientation, theme, and optional MIDI input. The
 simulation and renderer share one core; adapters own browser listeners and can
-be detached. The Gangline and Adam Biggs presets reproduce their original
-backgrounds.
+be detached. The included presets draw vertical rules or block glyphs.
 
 ## Install and use
 
@@ -17,6 +16,8 @@ npm install blorbo
 ```
 
 ```css
+:root { --g1: #182a35; --g2: #254758; --g3: #142a35;
+  --glyph: 232,230,223; --ring: 255,221,0; }
 .bgfx { position: fixed; inset: 0; pointer-events: none;
   background: linear-gradient(135deg, var(--g1), var(--g2), var(--g3)); }
 .bgfx canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -29,33 +30,26 @@ const blorbo = createBlorbo(document.getElementById('blorbo'), {
   preset: presets.adambiggs, // or presets.gangline
   persist: 'session',
 });
-
-// On a client-side route change, after its new content has been mounted:
-blorbo.remeasure();
-// When removing the canvas:
-blorbo.destroy();
 ```
 
-The package also includes `dist/blorbo.iife.js` for pages without a
-bundler. It exposes `window.Blorbo`. Load it before a script that calls
-`Blorbo.createBlorbo(canvas, { preset: Blorbo.presets.gangline })`.
+For client-side routing, call `blorbo.remeasure()` after mounting new page
+content. Call `blorbo.destroy()` when removing the canvas.
 
-## Updating the two sites
+For pages without a bundler, load the IIFE build from a CDN or copy
+`dist/blorbo.iife.js` into your site. It exposes `window.Blorbo`:
 
-The current integrations vendor built files because this package is not yet
-published. Gangline has no bundler: its page loads a copy of the IIFE, then
-`site/blorbo.js` initializes it. GitHub Pages hashes both script URLs when it
-assembles the site. Adam Biggs imports a copy of the ESM build from
-`src/components/Blorbo.astro`; Astro bundles it for the deployed page. Its
-standalone share-card source loads a copy of the IIFE from `public/`.
+```html
+<script src="https://cdn.jsdelivr.net/npm/blorbo@0.1.0/dist/blorbo.iife.js"></script>
+<script>
+  const blorbo = Blorbo.createBlorbo(document.getElementById('blorbo'), {
+    preset: Blorbo.presets.adambiggs,
+  });
+</script>
+```
 
-After a library change, run `npm run build` here, then copy
-`dist/blorbo.iife.js` to `gangline/site/blorbo.iife.js` and
-`adambiggs/public/blorbo.iife.js`, and `dist/blorbo.js` to
-`adambiggs/src/lib/blorbo.js`. Check the copied files' hashes, run the
-snapshot comparison against both sites, and commit the bundle copies with
-their consumers. The sites' deployment builds cannot read this sibling
-checkout, so a local `file:` dependency would not work there.
+The package's module API is ESM only. `blorbo/inputs` and `blorbo/presets`
+expose the individual adapters and presets for bundlers. The CDN fields
+select the separate IIFE build.
 
 The host supplies the gradient and CSS variables: `--glyph` is an `r,g,b`
 triplet. The block preset also reads `--glyph-gain`, `--glyph-floor`, and
@@ -134,18 +128,34 @@ bodies with `[x, y, radiusX, radiusY, weight]` entries in CSS pixels.
 The default 12 ms frame budget reduces spill passes when a rolling sample
 exceeds it, then restores detail after sustained spare time. Tier changes
 require at least three seconds of visible animation between applied tiers.
-Glyph spacing stays fixed across quality
-tiers.
+Glyph spacing stays fixed across quality tiers.
 Inspect `blorbo.stats` for frame cost and quality level. Override the budget
 with `quality: { frameBudget: 10, minDwellMs: 3000 }` or disable adaptation with
 `adaptive: false` for a fixed render. Custom `quality.levels` may change
 `spillSteps`; each level must keep `cellScale: 1`.
 
-Run `npm run snapshots:compare` to compare both integrated sites against their
-reference frames, and `npm run perf` for headless Chromium frame costs. Set
-`BLORBO_GANGLINE_SITE` and `BLORBO_ADAMBIGGS_PROJECT` to compare site worktrees.
-See `test/README.md` for the visual tolerance and fixture limits. Serve this
+## Browser support and testing
+
+The builds target Safari 16.4+, Chrome 100+, and Firefox 100+. The runtime
+test runs in headless Chromium; the integrated backgrounds have also been
+measured in desktop Safari. Other browser and device combinations are not
+part of a tested support matrix. MIDI needs Web MIDI and a user gesture;
+orientation permission depends on the browser and host page. The canvas is
+decorative and should have `aria-hidden="true"` on its wrapper, as above.
+
+From a checkout, run `npm ci` and `npm test`. On macOS, the test uses Google
+Chrome if installed. Otherwise install Playwright Chromium with
+`npx playwright-core install chromium`, or set `CHROME_PATH` to a Chrome
+executable.
+`npm run perf` measures headless Chromium frame costs at three viewport sizes.
+The visual snapshots compare two integration fixtures that live in sibling
+repositories, so they are a local gate rather than part of package CI. Set
+`BLORBO_GANGLINE_SITE` and `BLORBO_ADAMBIGGS_PROJECT` when those checkouts use
+other paths; see [test/README.md](test/README.md) for details. Serve this
 directory over HTTP to open `demo/midi.html` or `demo/phone-perf.html`.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development and release steps and
+[CHANGELOG.md](CHANGELOG.md) for the published changes.
 
 ## License
 

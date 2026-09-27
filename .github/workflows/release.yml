@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm install --global npm@11.5.1
+      - run: npm ci
+      - run: npx playwright-core install --with-deps chromium
+      - run: npm test
+      - name: Check tag and package version
+        id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          test "$GITHUB_REF_NAME" = "v$version"
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor HEAD FETCH_HEAD
+          if [[ "$version" == *-* ]]; then
+            echo 'dist_tag=next' >> "$GITHUB_OUTPUT"
+          else
+            echo 'dist_tag=latest' >> "$GITHUB_OUTPUT"
+          fi
+      - run: npm pack --dry-run
+      - name: Check registry version
+        id: registry
+        run: |
+          version=$(node -p "require('./package.json').version")
+          status=$(curl -sS -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/blorbo/$version")
+          case "$status" in
+            200) echo 'published=true' >> "$GITHUB_OUTPUT" ;;
+            404) echo 'published=false' >> "$GITHUB_OUTPUT" ;;
+            *) echo "Registry returned HTTP $status" >&2; exit 1 ;;
+          esac
+      - name: Publish with trusted publishing
+        if: steps.registry.outputs.published == 'false'
+        run: npm publish --access public --provenance --tag "${{ steps.version.outputs.dist_tag }}"

@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { extname, resolve, sep, join } from 'node:path';
-import { chromium } from 'playwright-core';
+import { launchChromium } from './browser.mjs';
 
 const here = resolve(import.meta.dirname, '..');
 const output = join(here, '.evidence/perf/chromium.json');
@@ -21,7 +21,7 @@ const server = createServer(async (req, res) => {
   } catch { res.writeHead(404); res.end(); }
 });
 await new Promise((done) => server.listen(0, '127.0.0.1', done));
-const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
+const browser = await launchChromium();
 const report = { chrome: browser.version(), cases: {} };
 try {
   for (const test of cases) {

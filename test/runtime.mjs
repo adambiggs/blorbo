@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
-import { chromium } from 'playwright-core';
+import { launchChromium } from './browser.mjs';
 
 const here = resolve(import.meta.dirname, '..');
 const server = createServer(async (req, res) => {
@@ -15,7 +15,7 @@ const server = createServer(async (req, res) => {
   } catch { res.writeHead(404); res.end(); }
 });
 await new Promise((done) => server.listen(0, '127.0.0.1', done));
-const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
+const browser = await launchChromium();
 try {
   const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
   page.on('pageerror', (error) => { throw error; });

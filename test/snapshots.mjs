@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
-import { chromium } from 'playwright-core';
+import { launchChromium } from './browser.mjs';
 
 const mode = process.argv[2];
 if (!['reference', 'compare'].includes(mode)) {
@@ -150,7 +150,7 @@ try {
   throw new Error(`Adam Biggs build failed; see ${buildLog}`, { cause: error });
 }
 console.log(`Adam Biggs build saved to ${buildLog}`);
-const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
+const browser = await launchChromium();
 const servers = [];
 try {
   if (mode === 'reference' && !process.argv.includes('--force')) {
