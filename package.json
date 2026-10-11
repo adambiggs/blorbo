@@ -22,7 +22,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "prepack": "npm run build",
-    "test": "npm run test:unit && npm run test:docs && npm run test:runtime",
+    "test": "npm run test:unit && npm run test:docs && npm run test:runtime && npm run snapshots:compare",
     "test:unit": "npm run build && node --test test/unit/*.test.mjs",
     "test:docs": "npm run build && node --test test/docs.test.mjs",
     "test:coverage": "npm run build && node --experimental-test-coverage --test-coverage-include='src/*.js' --test test/unit/*.test.mjs",

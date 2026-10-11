@@ -14,7 +14,7 @@ starts rendering and returns an instance.
 
 | Option | Default | Effect |
 | --- | --- | --- |
-| `preset` | `presets.adambiggs` | Preset object or name: `'adambiggs'`, `'gangline'`. |
+| `preset` | `presets.adambiggs` | Preset object or name: `'adambiggs'`, `'gangline'`, `'shorthand'`. |
 | `overrides` | `{}` | Shallow overrides of preset fields; `cell` merges by width and height. |
 | `inputs` | Built-in adapters | Array of adapter instances. Supplying it replaces all defaults, even when empty. |
 | `persist` | `'session'` | Stores cursor, content mask, and recent clicks in `sessionStorage`. Any other value disables storage. |
@@ -59,6 +59,9 @@ word pins, `img`, and DPR cap `2`. See it on [adambig.gs](https://adambig.gs).
 `presets.gangline` uses line glyphs, a lit column on click, `12 × 18` CSS px
 cells, element pins, `img,video`, and DPR cap `2`. See it on
 [gangline.ai](https://gangline.ai).
+`presets.shorthand` starts with the same values as `presets.gangline` for the
+Shorthand plug-in editor. Select it with `preset: presets.shorthand` or
+`preset: 'shorthand'`.
 
 A custom `glyph` has `style` (`'blocks'` or `'lines'`), `ramp` (an array or
 `({ width, height }) => array`), `steps` (one fewer threshold than ramp

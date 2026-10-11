@@ -18,7 +18,7 @@ const adambiggsProject = siteMode ? resolve(process.env.BLORBO_ADAMBIGGS_PROJECT
 const sites = siteMode ? {
   gangline: resolve(process.env.BLORBO_GANGLINE_SITE || resolve(here, '../gangline/site')),
   adambiggs: join(adambiggsProject, 'dist'),
-} : { rules: here, blocks: here };
+} : { rules: here, blocks: here, shorthand: here };
 const referenceDir = join(here, 'test/reference', ...(siteMode ? [] : ['fixtures']));
 const evidenceDir = join(here, '.evidence/snapshots', siteMode ? 'sites' : 'fixtures');
 const viewport = { width: 960, height: 640 };
@@ -32,6 +32,7 @@ const fixtureShared = ['fixture.css', 'fixture.js', 'shape.svg'].map((name) => j
 const sources = siteMode ? { gangline: [siteSources.gangline], adambiggs: [siteSources.adambiggs] } : {
   rules: [join(here, 'test/fixtures/rules.html'), ...fixtureShared],
   blocks: [join(here, 'test/fixtures/blocks.html'), ...fixtureShared],
+  shorthand: [join(here, 'test/fixtures/shorthand.html'), ...fixtureShared],
 };
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added the `shorthand` preset with the Gangline preset's starting values.
+
 ## [0.1.2] - 2026-09-27
 
 - Rewrote the README and added a guide and API reference.

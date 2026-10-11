@@ -47,7 +47,8 @@ const field = createBlorbo(document.querySelector('#blorbo'), {
 ```
 
 You can also pass a complete preset object as `preset`. Start with a copy of
-`presets.adambiggs` or `presets.gangline` so required fields remain present.
+`presets.adambiggs`, `presets.gangline`, or `presets.shorthand` so required
+fields remain present.
 
 ## Without a bundler
 

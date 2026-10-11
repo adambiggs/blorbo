@@ -8,15 +8,19 @@ import { resolvePreset } from '../../src/presets.js';
 import { createSignalBus } from '../../src/signals.js';
 import { FakeCanvas, FakeDocument } from './support/fakes.mjs';
 
-test('package exports both presets, signal bus, and named input adapters', () => {
+test('package exports all presets, signal bus, and named input adapters', () => {
   assert.equal(typeof api.createBlorbo, 'function');
   assert.equal(typeof api.createSignalBus, 'function');
-  assert.deepEqual(Object.keys(api.presets).sort(), ['adambiggs', 'gangline']);
+  assert.deepEqual(Object.keys(api.presets).sort(), ['adambiggs', 'gangline', 'shorthand']);
   for (const name of ['clock', 'viewport', 'scroll', 'pointer', 'click', 'orientation', 'midi', 'content', 'visibility', 'reducedMotion', 'theme']) {
     assert.equal(typeof api[name], 'function', name);
     assert.equal(typeof inputExports[name], 'function', name);
   }
   assert.equal(presetExports.presets.gangline.glyph, 'lines');
+  assert.deepEqual(api.presets.shorthand, api.presets.gangline);
+  assert.notStrictEqual(api.presets.shorthand, api.presets.gangline);
+  assert.notStrictEqual(api.presets.shorthand.cell, api.presets.gangline.cell);
+  assert.deepEqual(resolvePreset('shorthand'), api.presets.shorthand);
   assert.equal(typeof api.requestOrientationPermission, 'function');
   assert.equal(typeof api.createSignalBus().subscribe, 'function');
 });

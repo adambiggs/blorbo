@@ -1,8 +1,9 @@
 # Snapshot gates
 
-`npm run snapshots:compare` captures the two synthetic fixtures in
-`test/fixtures/`: rules and blocks, each in dark and light themes at rest,
-after scroll and pointer movement, and after a click. CI runs these 12 cases.
+`npm run snapshots:compare` captures the three synthetic fixtures in
+`test/fixtures/`: rules, blocks, and shorthand, each in dark and light themes
+at rest, after scroll and pointer movement, and after a click. CI runs these
+18 cases.
 The command builds Blorbo and uses Playwright's bundled Chromium. References
 are in `test/reference/fixtures/`; use `npm run snapshots:reference -- --force`
 only when the intended rendering changes. Each fixture includes pinned text,

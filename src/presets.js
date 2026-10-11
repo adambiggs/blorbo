@@ -8,6 +8,14 @@ export const presets = Object.freeze({
     media: 'img,video',
     maxDpr: 2,
   }),
+  shorthand: Object.freeze({
+    glyph: 'lines',
+    cell: { width: 12, height: 18 },
+    clickEffect: 'line',
+    pinMode: 'element',
+    media: 'img,video',
+    maxDpr: 2,
+  }),
   adambiggs: Object.freeze({
     glyph: 'blocks',
     cell: { width: 17, height: 21 },
