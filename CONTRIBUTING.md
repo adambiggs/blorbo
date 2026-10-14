@@ -4,9 +4,8 @@ Use Node.js 20.11 or newer. Run `npm ci && npm test`. Tests use Google Chrome
 on macOS when available; otherwise install Chromium with
 `npx playwright-core install chromium` or set `CHROME_PATH`.
 
-Run `npm run snapshots:compare` after rendering changes; CI runs the same
-18 synthetic fixture frames.
-The browser version and thresholds are in [test/README.md](test/README.md).
+The snapshot gate in `npm test` always uses Playwright's bundled Chromium;
+[test/README.md](test/README.md) describes it.
 
 ## Release
 
