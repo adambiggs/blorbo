@@ -1,6 +1,4 @@
 node_modules/
 test-results/
 dist/
-.worktrees/
-.state/
 .DS_Store
