@@ -11,8 +11,7 @@ The snapshot gate in `npm test` always uses Playwright's bundled Chromium;
 
 Run `npm version patch`, `npm version minor`, or `npm version major`. This
 updates the package and lockfile, commits, and creates a `v*` tag. Push the
-commit to `main`, wait for CI, check `npm pack --dry-run`, then push the tag.
-The release workflow tests and publishes with npm trusted
-publishing and provenance. Its npm binding is `adambiggs/blorbo` with workflow
-filename `release.yml` and direct publish permission. An already-published
-version is skipped.
+commit to `main`, wait for CI, then push the tag. The release workflow tests,
+checks the package, and publishes with npm trusted publishing and provenance.
+Its npm binding is `adambiggs/blorbo` with workflow filename `release.yml` and
+direct publish permission. An already-published version is skipped.
