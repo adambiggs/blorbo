@@ -1,9 +1,6 @@
-import { existsSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 
-const macChrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-
-export function launchChromium({ bundled = false } = {}) {
-  const executablePath = process.env.CHROME_PATH || (!bundled && existsSync(macChrome) ? macChrome : undefined);
+export function launchChromium() {
+  const executablePath = process.env.CHROME_PATH;
   return chromium.launch({ ...(executablePath ? { executablePath } : {}), headless: true });
 }

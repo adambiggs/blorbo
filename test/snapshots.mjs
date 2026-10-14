@@ -132,7 +132,7 @@ async function pixelDiff(page, actual, expected) {
   }, { actual: actual.toString('base64'), expected: expected.toString('base64') });
 }
 
-const browser = await launchChromium({ bundled: true });
+const browser = await launchChromium();
 const server = await serve();
 try {
   if (mode === 'reference' && !process.argv.includes('--force')) {

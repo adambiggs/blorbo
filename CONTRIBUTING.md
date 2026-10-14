@@ -1,11 +1,9 @@
 # Contributing
 
-Use Node.js 20.11 or newer. Run `npm ci && npm test`. Tests use Google Chrome
-on macOS when available; otherwise install Chromium with
-`npx playwright-core install chromium` or set `CHROME_PATH`.
-
-The snapshot gate in `npm test` always uses Playwright's bundled Chromium;
-[test/README.md](test/README.md) describes it.
+Use Node.js 20.11 or newer. Run `npm ci`, install Playwright's Chromium with
+`npx playwright-core install chromium`, then run `npm test`. Set `CHROME_PATH`
+to run the browser tests in another Chromium build.
+[test/README.md](test/README.md) describes the snapshot gate.
 
 ## Release
 
