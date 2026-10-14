@@ -11,4 +11,4 @@ intended rendering changes.
 Captures use 960 × 640 CSS pixels at DPR 1, a fixed wall clock, scroll to
 500 px, and controlled animation frames. A case passes when its per-channel
 mean difference is at most 0.5 and at most 1% of pixels differ by more than 8.
-Diffs of changed cases are written to `.evidence/snapshots/`.
+Diffs of changed cases are written to `test-results/snapshots/`.

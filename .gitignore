@@ -1,5 +1,5 @@
 node_modules/
-.evidence/
+test-results/
 dist/
 .worktrees/
 .state/

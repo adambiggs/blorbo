@@ -13,7 +13,7 @@ if (!['reference', 'compare'].includes(mode)) {
 const here = resolve(import.meta.dirname, '..');
 const fixtures = ['rules', 'blocks', 'shorthand'];
 const referenceDir = join(here, 'test/reference');
-const evidenceDir = join(here, '.evidence/snapshots');
+const resultsDir = join(here, 'test-results/snapshots');
 const viewport = { width: 960, height: 640 };
 const epoch = Date.UTC(2026, 8, 26, 12);
 const cases = ['rest', 'scroll-pointer', 'click'];
@@ -150,7 +150,7 @@ try {
   if (referenceManifest && (JSON.stringify(referenceManifest.viewport) !== JSON.stringify(viewport) || referenceManifest.epoch !== epoch)) {
     throw new Error('Reference viewport or clock differs from current harness');
   }
-  await mkdir(mode === 'reference' ? referenceDir : evidenceDir, { recursive: true });
+  await mkdir(mode === 'reference' ? referenceDir : resultsDir, { recursive: true });
   const manifest = { chrome: browser.version(), viewport, epoch, sources: {}, cases: {} };
   const captures = new Map();
   let failures = 0;
@@ -182,8 +182,8 @@ try {
       if (referenceManifest.cases[name] !== expectedHash) throw new Error(`Reference PNG or manifest changed: ${name}`);
       const { diff, ...metrics } = await pixelDiff(diffPage, actual, expected);
       if (metrics.changed) {
-        await writeFile(join(evidenceDir, `${name}.actual.png`), actual);
-        await writeFile(join(evidenceDir, `${name}.png`), Buffer.from(diff, 'base64'));
+        await writeFile(join(resultsDir, `${name}.actual.png`), actual);
+        await writeFile(join(resultsDir, `${name}.png`), Buffer.from(diff, 'base64'));
       }
       const pass = metrics.mean <= 0.5 && metrics.large / metrics.pixels <= 0.01;
       if (!pass) failures++;
@@ -192,7 +192,7 @@ try {
     }
     await diffPage.close();
   }
-  await writeFile(join(mode === 'reference' ? referenceDir : evidenceDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+  await writeFile(join(mode === 'reference' ? referenceDir : resultsDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
   if (failures) process.exitCode = 1;
 } finally {
   await new Promise((done) => server.close(done));
