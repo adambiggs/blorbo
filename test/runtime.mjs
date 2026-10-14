@@ -30,7 +30,7 @@ try {
       input.dispatchEvent(event);
     };
   });
-  await page.goto(`http://127.0.0.1:${server.address().port}/test/perf.html`, { waitUntil: 'load' });
+  await page.goto(`http://127.0.0.1:${server.address().port}/test/runtime.html`, { waitUntil: 'load' });
   await page.waitForFunction(() => !!window.makeBlorbo);
   const result = await page.evaluate(async () => {
     const next = () => new Promise((done) => requestAnimationFrame(done));

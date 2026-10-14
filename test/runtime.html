@@ -14,8 +14,8 @@
 <main>
   <h1 data-blob="words">Blorbo</h1>
   <p>A representative page with a pinned headline and several text boxes. The field follows the pointer, page scroll, and click while text repels the free bodies.</p>
-  <p>The canvas is sampled at phone, tablet, and desktop sizes. Each run includes content measurement, field simulation, spill, sprite blits, and a frame budget response.</p>
-  <p>Longer paragraphs keep enough content in view to exercise masking and spill. This fixture is deliberately plain so the measured cost belongs to the field.</p>
+  <p>Text in view is measured into the content mask, and the field spills around it.</p>
+  <p>Longer paragraphs keep enough content in view to exercise masking and spill.</p>
 </main>
 <script type="module">
   import { createBlorbo, presets } from '../src/index.js';

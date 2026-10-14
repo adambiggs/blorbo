@@ -28,8 +28,7 @@
     "test:coverage": "npm run build && node --experimental-test-coverage --test-coverage-include='src/*.js' --test test/unit/*.test.mjs",
     "snapshots:reference": "npm run build && node test/snapshots.mjs reference",
     "snapshots:compare": "npm run build && node test/snapshots.mjs compare",
-    "test:runtime": "node test/runtime.mjs",
-    "perf": "node test/perf.mjs"
+    "test:runtime": "node test/runtime.mjs"
   },
   "devDependencies": {
     "esbuild": "0.28.2",
