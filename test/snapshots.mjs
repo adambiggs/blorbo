@@ -1,49 +1,32 @@
 import { createHash } from 'node:crypto';
-import { execFile } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 import { extname, join, resolve, sep } from 'node:path';
-import { promisify } from 'node:util';
 import { launchChromium } from './browser.mjs';
 
 const mode = process.argv[2];
-const siteMode = process.argv.includes('--sites');
 if (!['reference', 'compare'].includes(mode)) {
   console.error('Usage: npm run snapshots:reference|snapshots:compare');
   process.exit(2);
 }
 
 const here = resolve(import.meta.dirname, '..');
-const adambiggsProject = siteMode ? resolve(process.env.BLORBO_ADAMBIGGS_PROJECT || resolve(here, '../adambiggs')) : null;
-const sites = siteMode ? {
-  gangline: resolve(process.env.BLORBO_GANGLINE_SITE || resolve(here, '../gangline/site')),
-  adambiggs: join(adambiggsProject, 'dist'),
-} : { rules: here, blocks: here, shorthand: here };
-const referenceDir = join(here, 'test/reference', ...(siteMode ? [] : ['fixtures']));
-const evidenceDir = join(here, '.evidence/snapshots', siteMode ? 'sites' : 'fixtures');
+const fixtures = ['rules', 'blocks', 'shorthand'];
+const referenceDir = join(here, 'test/reference');
+const evidenceDir = join(here, '.evidence/snapshots');
 const viewport = { width: 960, height: 640 };
 const epoch = Date.UTC(2026, 8, 26, 12);
 const cases = ['rest', 'scroll-pointer', 'click'];
-const siteSources = siteMode ? {
-  gangline: resolve(process.env.BLORBO_GANGLINE_SOURCE || join(sites.gangline, 'blorbo.js')),
-  adambiggs: resolve(process.env.BLORBO_ADAMBIGGS_SOURCE || join(adambiggsProject, 'src/components/Blorbo.astro')),
-} : null;
 const fixtureShared = ['fixture.css', 'fixture.js', 'shape.svg'].map((name) => join(here, 'test/fixtures', name));
-const sources = siteMode ? { gangline: [siteSources.gangline], adambiggs: [siteSources.adambiggs] } : {
-  rules: [join(here, 'test/fixtures/rules.html'), ...fixtureShared],
-  blocks: [join(here, 'test/fixtures/blocks.html'), ...fixtureShared],
-  shorthand: [join(here, 'test/fixtures/shorthand.html'), ...fixtureShared],
-};
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
 
-function serve(root, site) {
+function serve() {
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost');
       const relative = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'index.html';
-      const path = resolve(root, relative);
-      if (path !== root && !path.startsWith(root + sep)) throw new Error('outside site');
-      if (!siteMode && path !== join(here, 'dist/blorbo.iife.js') && !path.startsWith(join(here, 'test/fixtures') + sep))
+      const path = resolve(here, relative);
+      if (path !== join(here, 'dist/blorbo.iife.js') && !path.startsWith(join(here, 'test/fixtures') + sep))
         throw new Error('outside fixture');
       const body = await readFile(path);
       res.writeHead(200, { 'content-type': mime[extname(path)] || 'application/octet-stream' });
@@ -55,11 +38,9 @@ function serve(root, site) {
   return new Promise((done) => server.listen(0, '127.0.0.1', () => done(server)));
 }
 
-async function capture(browser, site, baseUrl, theme, scene) {
+async function capture(browser, fixture, baseUrl, theme, scene) {
   const context = await browser.newContext({ viewport, deviceScaleFactor: 1, colorScheme: theme, reducedMotion: 'no-preference' });
   const page = await context.newPage();
-  // Keep the unrelated demo controls fixed during Blorbo captures.
-  if (site === 'gangline') await page.route('**/demo.js', (route) => route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.addInitScript((fixedTime) => {
@@ -76,7 +57,7 @@ async function capture(browser, site, baseUrl, theme, scene) {
       }
     };
   }, epoch);
-  const target = siteMode ? baseUrl : new URL(`test/fixtures/${site}.html`, baseUrl).href;
+  const target = new URL(`test/fixtures/${fixture}.html`, baseUrl).href;
   const response = await page.goto(target, { waitUntil: 'load' });
   if (!response.ok()) throw new Error(`Fixture request returned HTTP ${response.status()}: ${target}`);
   await page.evaluate(() => document.fonts.ready);
@@ -151,20 +132,8 @@ async function pixelDiff(page, actual, expected) {
   }, { actual: actual.toString('base64'), expected: expected.toString('base64') });
 }
 
-await mkdir(evidenceDir, { recursive: true });
-if (siteMode) {
-  const buildLog = join(evidenceDir, 'astro-build.log');
-  try {
-    const { stdout, stderr } = await promisify(execFile)('npm', ['run', 'build'], { cwd: adambiggsProject, maxBuffer: 10 * 1024 * 1024 });
-    await writeFile(buildLog, stdout + stderr);
-  } catch (error) {
-    await writeFile(buildLog, (error.stdout || '') + (error.stderr || ''));
-    throw new Error(`Adam Biggs build failed; see ${buildLog}`, { cause: error });
-  }
-  console.log(`Adam Biggs build saved to ${buildLog}`);
-}
-const browser = await launchChromium({ bundled: !siteMode });
-const servers = [];
+const browser = await launchChromium({ bundled: true });
+const server = await serve();
 try {
   if (mode === 'reference' && !process.argv.includes('--force')) {
     try {
@@ -182,25 +151,19 @@ try {
     throw new Error('Reference viewport or clock differs from current harness');
   }
   await mkdir(mode === 'reference' ? referenceDir : evidenceDir, { recursive: true });
-  const manifest = { chrome: browser.version(), viewport, epoch, ...(mode === 'compare' ? { roots: sites } : {}), sources: {}, cases: {} };
+  const manifest = { chrome: browser.version(), viewport, epoch, sources: {}, cases: {} };
   const captures = new Map();
   let failures = 0;
-  for (const [site, root] of Object.entries(sites)) {
-    try {
-      const hash = createHash('sha256');
-      for (const source of sources[site]) hash.update(await readFile(source));
-      manifest.sources[site] = hash.digest('hex');
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-      manifest.sources[site] = null;
-    }
-    if (!siteMode && referenceManifest && referenceManifest.sources[site] !== manifest.sources[site])
-      throw new Error(`Fixture sources changed: ${site}; regenerate references`);
-    const server = await serve(root, site); servers.push(server);
-    const baseUrl = `http://127.0.0.1:${server.address().port}/`;
+  const baseUrl = `http://127.0.0.1:${server.address().port}/`;
+  for (const fixture of fixtures) {
+    const hash = createHash('sha256');
+    for (const source of [join(here, `test/fixtures/${fixture}.html`), ...fixtureShared]) hash.update(await readFile(source));
+    manifest.sources[fixture] = hash.digest('hex');
+    if (referenceManifest && referenceManifest.sources[fixture] !== manifest.sources[fixture])
+      throw new Error(`Fixture sources changed: ${fixture}; regenerate references`);
     for (const theme of ['dark', 'light']) for (const scene of cases) {
-      const name = `${site}-${theme}-${scene}`;
-      const actual = await capture(browser, site, baseUrl, theme, scene);
+      const name = `${fixture}-${theme}-${scene}`;
+      const actual = await capture(browser, fixture, baseUrl, theme, scene);
       const path = join(referenceDir, `${name}.png`);
       if (mode === 'reference') {
         await writeFile(path, actual);
@@ -232,6 +195,6 @@ try {
   await writeFile(join(mode === 'reference' ? referenceDir : evidenceDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
   if (failures) process.exitCode = 1;
 } finally {
-  for (const server of servers) await new Promise((done) => server.close(done));
+  await new Promise((done) => server.close(done));
   await browser.close();
 }

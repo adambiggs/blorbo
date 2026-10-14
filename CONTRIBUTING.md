@@ -5,9 +5,7 @@ on macOS when available; otherwise install Chromium with
 `npx playwright-core install chromium` or set `CHROME_PATH`.
 
 Run `npm run snapshots:compare` after rendering changes; CI runs the same
-18 synthetic fixture frames. Before a release, run `npm run snapshots:sites`
-against the Gangline and Adam Biggs checkouts beside this repository. Set
-`BLORBO_GANGLINE_SITE` and `BLORBO_ADAMBIGGS_PROJECT` for other locations.
+18 synthetic fixture frames.
 The browser version and thresholds are in [test/README.md](test/README.md).
 
 ## Release

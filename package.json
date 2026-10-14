@@ -28,8 +28,6 @@
     "test:coverage": "npm run build && node --experimental-test-coverage --test-coverage-include='src/*.js' --test test/unit/*.test.mjs",
     "snapshots:reference": "npm run build && node test/snapshots.mjs reference",
     "snapshots:compare": "npm run build && node test/snapshots.mjs compare",
-    "snapshots:sites": "node test/site-snapshots.mjs compare",
-    "snapshots:sites:reference": "node test/site-snapshots.mjs reference",
     "test:runtime": "node test/runtime.mjs",
     "perf": "node test/perf.mjs"
   },
