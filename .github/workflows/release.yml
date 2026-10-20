@@ -22,7 +22,8 @@ jobs:
       - run: npm install --global npm@11.5.1
       - run: npm ci
       - run: npx playwright-core install --with-deps chromium
-      - run: npm test
+      - run: npm run test:unit
+      - run: npm run test:prerelease
       - name: Check tag and package version
         id: version
         run: |
